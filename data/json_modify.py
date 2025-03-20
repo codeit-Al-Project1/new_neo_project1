@@ -1,3 +1,4 @@
+import argparse
 import os
 import json
 
@@ -114,3 +115,11 @@ def json_modify(output_dir, json_folder, img=img, annot=annot):
 # json_folder = "/content/Project1/data/train_annotations"
 
 # json_modify(output_dir, json_folder)
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="Json modification")
+    # default 저장 루트를 확인
+    parser.add_argument('--output_dir', type=str, default="data/train_annots_modify", help='Destination of json file save')
+    parser.add_argument('--json_folder', type=str, default='data/train_annotations', help='Location of original json files')
+    args = parser.parse_args()
+    json_modify(args.output_dir, args.json_folder)

@@ -66,7 +66,7 @@ def get_transforms(mode='train'):
     """
     ################################################################
     # 리사이즈 크기 설정해야함
-    ####################################
+    #########################################
     if mode == 'train':
         return T.Compose([
             T.ToImage(), # PIL → TVImage 자동 변환
@@ -527,12 +527,12 @@ if __name__ == "__main__":
     parser.add_argument('--mode', type=str, default='train', choices=['train', 'val', 'test'], help="운영 모드")
     parser.add_argument('--batch_size', type=int, default=4, help="배치 크기")
     parser.add_argument('--debug', action='store_true', help="디버깅 모드 여부")
+    parser.add_argument('--val_ratio', type=float, default=0.2, help="검증 데이터셋 비율 (0 ~ 1)")
+    parser.add_argument('--seed', type=int, default=42, help="랜덤 시드 (재현성 보장)")
     
 ######################################################################################
 # 추가인자에 맞춰서 수정하기
     # # ✅ 추가 인자 (아래 추가)
-    # parser.add_argument('--val_ratio', type=float, default=0.2, help="검증 데이터셋 비율 (0 ~ 1)")  # ⭐ 추가됨
-    # parser.add_argument('--seed', type=int, default=42, help="랜덤 시드 (재현성 보장)")  # ⭐ 추가됨
     # parser.add_argument('--resize', type=int, default=None, help="이미지 리사이즈 크기 (정사각형)")  # ⭐ 추가됨
     # parser.add_argument('--num_workers', type=int, default=4, help="DataLoader 병렬 처리 쓰레드 수")  # ⭐ 추가됨
     # parser.add_argument('--max_samples', type=int, default=None, help="데이터셋 일부만 사용 (디버깅용)")  # ⭐ 추가됨
@@ -548,7 +548,7 @@ if __name__ == "__main__":
 
     # 선택한 모드에 맞춰 로더 실행 및 디버깅 테스트
     if args.mode in ['train', 'val']:
-        loader = get_loader(TRAIN_ROOT, TRAIN_ANN_DIR, batch_size=args.batch_size, mode=args.mode, debug=args.debug)
+        loader = get_loader(TRAIN_ROOT, TRAIN_ANN_DIR, batch_size=args.batch_size, mode=args.mode, val_ratio=args.val_ratio, debug=args.debug, seed=args.seed)
         print(f"{args.mode} loader 생성 완료.")
     elif args.mode == 'test':
         loader = get_loader(TEST_ROOT, None, batch_size=args.batch_size, mode=args.mode, debug=args.debug)
