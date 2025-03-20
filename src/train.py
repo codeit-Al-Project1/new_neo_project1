@@ -2,8 +2,8 @@ import torch
 import torch.optim as optim
 import torch.nn as nn
 from tqdm import tqdm
-from src.model import get_fast_rcnn_model
-from src.model import save_model
+from new_neo_project1.src.models.model import get_fast_rcnn_model
+from new_neo_project1.src.models.model import save_model
 from src.utils import get_optimizer
 from src.utils import get_scheduler
 # from src.dataset import get_dataloader

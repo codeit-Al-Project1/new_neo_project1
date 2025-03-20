@@ -1,8 +1,5 @@
-<<<<<<< HEAD
-=======
 # ====== 가상환경 통일을 위해 설치가 필요한 핵심 패키지 목록 (노트북 기본 설치되지 않는 항목 우선, 충돌 방지용 정리) ======
 # scipy 1.13.1 , python 3.11 과의 충돌로 삭제
->>>>>>> 261120467b5c6841fa226777d504ca4a4012fd0e
 anyio==4.8.0
 argon2-cffi==23.1.0
 arrow==1.3.0
@@ -75,30 +72,25 @@ requests==2.32.3
 scikit-learn==1.6.1
 soupsieve==2.6
 sympy==1.13.1
-<<<<<<< HEAD
 # torch==2.6.0
 # torchaudio==2.6.0
 # torchvision==0.21.0
 torchinfo==1.8.0
-=======
->>>>>>> 261120467b5c6841fa226777d504ca4a4012fd0e
 terminado==0.18.1
 text-unidecode==1.3
 threadpoolctl==3.6.0
 tinycss2==1.4.0
 tomli==2.2.1
-<<<<<<< HEAD
 torchinfo==1.8.0
-=======
 torch==2.6.0    # 통일 권장 (cu124)
 torchaudio==2.6.0
 torchinfo==1.8.0        # torchsummary와 택일
 torchvision==0.21.0
->>>>>>> 261120467b5c6841fa226777d504ca4a4012fd0e
 tornado==6.4.2
 tqdm==4.67.1
 urllib3==2.3.0
 websocket-client==1.8.0
+<<<<<<< HEAD
 <<<<<<< HEAD
 zipp==3.21.0
 =======
@@ -108,3 +100,7 @@ widgetsnbextension==4.0.13
 >>>>>>> 261120467b5c6841fa226777d504ca4a4012fd0e
 zipp==3.21.0
 >>>>>>> 0b4590f95cefe8b8953261fe75a5978a8f9b61e0
+=======
+widgetsnbextension==4.0.13
+zipp==3.21.0
+>>>>>>> 65155195f5a9f681e100ffb745ccd34adf8b3d76
