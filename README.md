@@ -1,5 +1,6 @@
  # Data Download 실행
 
+<<<<<<< Updated upstream
  python src/data_utils/data_download.py --download True --extract True
 
  Download path는 default 값인 './data'로 설정 된다. 필요하다면 아래의 방식으로 재설정 하는 방식이 가능하되, 가능하면 defalut값으로 진행하는 것을 권장한다.
@@ -21,3 +22,6 @@
   ***NOTE: Defalut 값으로 './data/train_annotations'를 추적하며 './data/train_annots_modify' 폴더를 생성한다.***
 
   ***NOTE: argument parse 값으로 output dir와 json_folder설정이 가능하나, 추후 다른 모듈과의 연동을 위해 기본값으로 진행하는것을 권장한다.***
+=======
+진행상황을 업데이트 한다.
+>>>>>>> Stashed changes

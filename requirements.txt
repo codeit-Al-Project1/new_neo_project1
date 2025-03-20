@@ -96,6 +96,7 @@ zipp==3.21.0
 =======
 <<<<<<< HEAD
 widgetsnbextension==4.0.13
+<<<<<<< Updated upstream
 =======
 >>>>>>> 261120467b5c6841fa226777d504ca4a4012fd0e
 zipp==3.21.0
@@ -104,3 +105,11 @@ zipp==3.21.0
 widgetsnbextension==4.0.13
 zipp==3.21.0
 >>>>>>> 65155195f5a9f681e100ffb745ccd34adf8b3d76
+=======
+zipp==3.21.0
+zipp==3.21.0
+widgetsnbextension==4.0.13
+zipp==3.21.0
+widgetsnbextension==4.0.13
+zipp==3.21.0
+>>>>>>> Stashed changes
