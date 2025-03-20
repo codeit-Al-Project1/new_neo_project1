@@ -1,12 +1,26 @@
-# 모든 png 파일 무시
+# 모든 PNG 파일 무시
 *.png
 
-# 모든 zip 파일 무시
+# 모든 ZIP 파일 무시
 *.zip
 
-# 파이캐시 무시
-__pycache__
+# 파이썬 캐시 파일 무시
+__pycache__/
 
-# 데이터 폴더 무시(데이터 다운로드 모듈 제외)
+# 모듈화 실행 시 덮어쓰기 방지를 위해 개개인의 검증용 어노테이션 디렉토리 제외
+data/train_annots_modify/*
+
+# 이미지 디렉토리 무시 (필요 시 수동으로 제외 추천)
+data/test_images/*
+data/train_images/*
+data/train_annotations/*
+
+# 혹시 남아있을 압축 파일 무시
+data/ai01-level1-project.zip
+
+# 데이터 폴더 전체 무시 (개별 예외만 따로 위에서 설정)
 data/*
-!data/data_download.py
+notebooks/*
+models/*
+# 가상환경 폴더 무시
+pj1/

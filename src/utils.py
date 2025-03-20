@@ -1,6 +1,9 @@
 from matplotlib import pyplot as plt
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
+import torch
+from torchvision.ops import box_iou
+from sklearn.metrics import average_precision_score
 
 
 def get_optimizer(name, model, lr=1e-3, weight_decay=0):
@@ -49,6 +52,72 @@ def get_scheduler(name, optimizer, step_size=10, gamma=0.1, T_max=50):
         raise ValueError(f"지원되지 않는 스케줄러: {name}. 사용 가능한 옵션: {list(schedulers.keys())}")
 
     return schedulers[name.lower()]
+
+
+# 평가 함수 정의 (IoU 기반)
+def calculate_iou(pred_boxes, true_boxes):
+    """
+    IoU (Intersection over Union) 계산
+    pred_boxes: 예측된 바운딩 박스
+    true_boxes: 실제 바운딩 박스
+    """
+    return box_iou(pred_boxes, true_boxes)
+
+import numpy as np
+from sklearn.metrics import precision_recall_curve
+
+
+def calculate_ap(pred_boxes, true_boxes, pred_scores, iou_threshold=0.5):
+    """
+    주어진 예측 박스와 실제 박스를 비교하여 Average Precision (AP)를 계산합니다.
+    pred_boxes: 예측된 바운딩 박스 (xyxy 포맷)
+    true_boxes: 실제 바운딩 박스 (xyxy 포맷)
+    pred_scores: 예측된 점수 (confidence score)
+    iou_threshold: IoU 임계값 (기본값: 0.5)
+    """
+    # 각 예측에 대해 IoU를 계산하고, 적절한 precision, recall을 구합니다.
+    ious = calculate_iou(pred_boxes, true_boxes)
+    
+    # 각 예측에 대해 IoU가 threshold를 넘는지 확인
+    tp = (ious > iou_threshold).sum(dim=1).bool()  # True Positive (IoU > threshold)
+    fp = (~tp).bool()  # False Positive (IoU < threshold)
+    
+    # Precision과 Recall 계산
+    tp_cumsum = torch.cumsum(tp.int(), dim=0)
+    fp_cumsum = torch.cumsum(fp.int(), dim=0)
+    
+    precision = tp_cumsum / (tp_cumsum + fp_cumsum + 1e-6)  # 작은 값 더해주기
+    recall = tp_cumsum / (len(true_boxes) + 1e-6)
+    
+    # AP 계산 (Precision-Recall 곡선 아래의 면적을 구합니다.)
+    ap = np.trapz(precision.cpu().numpy(), recall.cpu().numpy())  # Precision-Recall 곡선 아래 면적 계산
+    return ap
+
+def evaluate_predictions_direct(predictions, targets, num_classes):
+    """
+    예측과 실제값을 비교하여 mAP를 계산하는 함수입니다.
+    predictions: 모델 예측 결과 (box, score, label 포함)
+    targets: 실제 값 (box, label 포함)
+    num_classes: 클래스 수
+    """
+    total_ap_score = 0
+    num_predictions = 0
+
+    # 각 클래스별로 AP 계산
+    for i in range(1, num_classes):  # 클래스 0은 배경이므로 제외
+        pred_boxes = predictions['boxes'][predictions['labels'] == i]
+        pred_scores = predictions['scores'][predictions['labels'] == i]
+        true_boxes = targets['boxes'][targets['labels'] == i]
+        
+        if len(pred_boxes) == 0 or len(true_boxes) == 0:
+            continue
+        
+        ap = calculate_ap(pred_boxes, true_boxes, pred_scores)
+        total_ap_score += ap
+        num_predictions += 1
+    
+    avg_ap_score = total_ap_score / num_predictions if num_predictions > 0 else 0
+    return avg_ap_score
 
 
 # def draw_bbox(ax, box, text, color):

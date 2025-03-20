@@ -14,7 +14,7 @@ def get_fast_rcnn_model(num_classes):
 
     return model
 
-def save_model(model, save_dir="../models", base_name="model", ext=".pth"):
+def save_model(model, save_dir="./models", base_name="model", ext=".pth"):
     """
     모델을 저장할 때, 기존 파일 개수를 기준으로 자동 넘버링하여 저장하는 함수.
     
@@ -27,22 +27,14 @@ def save_model(model, save_dir="../models", base_name="model", ext=".pth"):
     Returns:
         str: 저장된 파일의 전체 경로
     """
-
-    # 저장할 디렉토리 생성 (없으면 생성)
     os.makedirs(save_dir, exist_ok=True)
-
-    # 기존 모델 파일 목록 가져오기
+    
     existing_models = [f for f in os.listdir(save_dir) if f.startswith(base_name) and f.endswith(ext)]
-
     # 저장할 모델 번호 계산
     model_count = len(existing_models) + 1
 
-    # 저장할 파일 경로 생성
     model_save_path = os.path.join(save_dir, f"{base_name}_{model_count}{ext}")
-
-    # 모델 저장
     torch.save(model.state_dict(), model_save_path)
-
     print(f"Model saved to {model_save_path}")
     return model_save_path
 
