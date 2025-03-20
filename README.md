@@ -1,5 +1,7 @@
  # Data Download 실행
-
+ 
+ 실행방법:
+ 
  python src/data_utils/data_download.py --download True --extract True
 
  Download path는 default 값인 './data'로 설정 된다. 필요하다면 아래의 방식으로 재설정 하는 방식이 가능하되, 가능하면 defalut값으로 진행하는 것을 권장한다.
@@ -12,7 +14,7 @@
 
   python src/data_utils/data_download.py --download False --extract False
 
-# json을 모델에 학습시키기 위해 수정하는 작업
+# json(Annotation)을 모델에 학습시키기 위해 수정하는 작업
 
  실행 방법:
 
