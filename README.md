@@ -1,27 +1,10 @@
  # Data Download 실행
+ 필요한 Data Download 및 extract 그리고 wrapping과정을 통합한 모듈
+ ***NOTE: colab과의 연동을 진행한 vs code에서는 다운로드 진행상황이 보이나, 일반 vs code환경에서의 실행시 진행상황은 보이지 않습니다. (1분에서 5분 소요)***
+ ***Kaggle API를 이용한 데이터 다운로드 이므로, Kaggle 인증이 필요합니다. 다운로드를 따로하려면 아래의 커멘드 참조***
+ 실행: -- 수정
+  python src/data_utils/data_download.py --download True --extract True
   
-  python src/data_utils/data_download.py --download True --extract True
- 
-  Download path는 default 값인 './data'로 설정 된다. 필요하다면 아래의 방식으로 재설정 하는 방식이 가능하되, 가능하면 defalut값으로 진행하는 것을 권장한다.
- 
-  python src/data_utils/data_download.py --download_path <다운로드 경로> --download True --extract True
- 
-  ***Note: 다운로드 과정에 있어서 kaggle의 API를 적용했으므로, kaggle인증을 미리 진행해야 다운로드를 진행할 수 있다.***
- 
-  ***Note: 다운로드 과정이 필요없는 경우, train_annotations폴더 내의 annotations의 최신화를 위해 download False, extract False를 두어 실행한다.***
- 
-   python src/data_utils/data_download.py --download False --extract False
- 
- # json(Annotation)을 모델에 학습시키기 위해 수정하는 작업
- 
-  실행 방법:
- 
-   python src/data_utils/json_modify.py
- 
-   ***NOTE: Defalut 값으로 './data/train_annotations'를 추적하며 './data/train_annots_modify' 폴더를 생성한다.***
- 
-   ***NOTE: argument parse 값으로 output dir와 json_folder설정이 가능하나, 추후 다른 모듈과의 연동을 위해 기본값으로 진행하는것을 권장한다.***
-
-실행:
-  python src/data_utils/data_download.py --download True --extract True
-  python src/data_utils/json_modify.py
+  다운로드 = False 압축해제 = False --> 압축파일을 가지고있고 모듈을 통해 해제하려면 './data'에 압축파일을 두고 extract만 True로 진행.
+  
+  python src/data_utils/data_download.py --download False --extract False
