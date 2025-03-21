@@ -109,13 +109,6 @@ def json_modify(output_dir, json_folder, img=img, annot=annot):
     print(f"JSON 파일 저장 완료!")
 
 
-
-# 실행 
-# output_dir = "data/train_annots_modify"
-# json_folder = "/content/Project1/data/train_annotations"
-
-# json_modify(output_dir, json_folder)
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="Json modification")
     # default 저장 루트를 확인
