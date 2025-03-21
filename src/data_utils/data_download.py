@@ -4,7 +4,7 @@ import zipfile
 import gdown
 import shutil
 from tqdm import tqdm
-import json
+import argparse
 
 def download_data(download_path = './data', download=True, extract=True):
     """
@@ -22,12 +22,12 @@ def download_data(download_path = './data', download=True, extract=True):
     if os.path.exists(download_path):
         download_path = './data'
         print("data폴더가 존재합니다.")
-    elif download_path != './data' and not os.path.exists(download_path):
+    elif not os.path.exists(download_path):
         os.mkdir(download_path)
         print("지정한 위치에 새로운 폴더를 생성합니다.")
     else:
         download_path = './'
-        print("data폴더가 없습니다. 폴더를 새로 만들지 않고 현재폴더에서 진행됩니다.")
+        print("Download Path를 지정하지 않았습니다. 현재위치에서 진행합니다.")
 
     competition_name = 'ai01-level1-project'
 
@@ -129,7 +129,15 @@ def folder_check():
 
 
 if __name__ == '__main__':
-    download_data(download=False, extract=False)
+
+    parser = argparse.ArgumentParser(description="Data download and annotation wrap")
+    # default 저장 루트를 확인
+    parser.add_argument('--download_path', type=str, default="./data", help='Download Path(default: ./data)')
+    parser.add_argument('--download', type=bool, default=False, help='Download Preference')
+    parser.add_argument('--extract', type=bool, default=False, help='Extract Preference')
+    args = parser.parse_args()
+
+    download_data(args.download_path, args.download, args.extract)
     folder_check()
     wrap_annotation()
     folder_check()

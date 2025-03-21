@@ -1,43 +1,32 @@
 import csv
 import numpy as np
-import pandas as pd
 import torch
 import os
+import argparse
 
 test_dir = './data/test_images'
 
-test_file_paths = sorted(
+def submission_csv(predictions, test_dir, submission_file_path=None, debug=False):
+    test_dir = sorted(
     [os.path.join(test_dir, f) for f in os.listdir(test_dir) if f.endswith('.png')],
     key=lambda x: int(os.path.splitext(os.path.basename(x))[0])
-)
-
-pred_example = [
-    {
-        'boxes': torch.tensor([[0, 1, 2, 3], [10, 20, 30, 40], [50, 60, 70, 80]], dtype=torch.float32),
-        'labels': torch.tensor([1, 3, 6], dtype=torch.int64),
-        'scores': torch.tensor([0.987, 0.932, 0.543], dtype=torch.float32)
-    },
-    {
-        'boxes': torch.tensor([[5, 10, 15, 20], [25, 30, 35, 40], [45, 50, 55, 60]], dtype=torch.float32),
-        'labels': torch.tensor([2, 4, 7], dtype=torch.int64),
-        'scores': torch.tensor([0.876, 0.834, 0.622], dtype=torch.float32)
-    },
-    {
-        'boxes': torch.tensor([[8, 16, 24, 32], [12, 24, 36, 48], [20, 30, 40, 50]], dtype=torch.float32),
-        'labels': torch.tensor([5, 8, 9], dtype=torch.int64),
-        'scores': torch.tensor([0.941, 0.789, 0.558], dtype=torch.float32)
-    }
-]
-
-def submission_csv(test_file_path, predictions=None, submission_file_path=None, verbose=False):
+    )
+    print(test_dir)
+    
     submission_data = []
     annotation_id = 1
-    num_files = len(test_file_path)
+    num_files = len(test_dir)
     num_preds = len(predictions)
+
+    print(num_files, num_preds)
+
+    if num_files != num_preds:
+        print("Test 이미지와 Prediction의 크기가 맞지 않습니다.")
     
-    for i, (file_path) in enumerate(test_file_path):
-        image_id = file_path.split('\\')[-1].split('.png')[0]
+    for i, (file_path) in enumerate(test_dir):
+        image_id = file_path.split('/')[-1].split('.png')[0]
         
+
         if predictions is not None:
             try:
                 idx = int(image_id) - 1
@@ -50,11 +39,16 @@ def submission_csv(test_file_path, predictions=None, submission_file_path=None, 
                 continue
             pred = predictions[idx]
 
+            if i == 0:
+                print(pred)
+
+            # pred['boxes'], pred['labels'], pred['scores']가 tuple로 되어 있으므로 이를 numpy 배열로 변환
             pred = {
-                'boxes': pred['boxes'].numpy().astype(np.int32),
-                'labels': pred['labels'].numpy(),
-                'scores': pred['scores'].numpy()
+                'boxes': np.array(pred['boxes'], dtype=np.int32),  # tuple을 numpy 배열로 변환
+                'labels': np.array(pred['category_id'], dtype=np.int32),  # tuple을 numpy 배열로 변환
+                'scores': np.array(pred['scores'], dtype=np.float32)  # tuple을 numpy 배열로 변환
             }
+
 
             bbox = pred['boxes']
             score = pred['scores']
@@ -69,12 +63,6 @@ def submission_csv(test_file_path, predictions=None, submission_file_path=None, 
                 submission_data.append([annotation_id, image_id, labels[0], bbox[0][0], bbox[0][1], bbox[0][2], bbox[0][3], score[0]])
                 annotation_id += 1
 
-            if verbose:
-                print("submission first line: ", submission_data[0])
-                print(bbox)
-                print(score)
-                print(labels)
-
     if submission_file_path:
         with open(submission_file_path, 'w', newline='') as file:
             writer = csv.writer(file)
@@ -84,5 +72,4 @@ def submission_csv(test_file_path, predictions=None, submission_file_path=None, 
 
     return submission_data
 
-
-submission_csv(predictions=pred_example, test_file_path=test_file_paths, submission_file_path="./submission.csv", verbose=True)
+# submission_csv(predictions, args.test_dir, args.submission_file_path, args.debug)
