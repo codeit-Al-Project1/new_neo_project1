@@ -1,28 +1,26 @@
-import os
-import torch
+from ultralytics import YOLO
 
-
-def get_yolov5_model(model_name='yolov5s', num_classes=None, pretrained=True):
+def get_yolov5(model_path="yolov5s.pt", num_classes=None):
     """
-    YOLOv5 모델을 로드하는 함수
-
+    YOLOv5 모델 로드 함수
+    
     Args:
-        model_name (str): 사용할 YOLOv5 모델 이름 (예: yolov5s, yolov5m, yolov5l, yolov5x)
-        num_classes (int, optional): 클래스 수 변경이 필요할 때 입력 (기본 None이면 COCO 80 클래스)
-        pretrained (bool): pretrained weight 여부
-
+        model_path (str): 사전 학습된 모델 경로 또는 모델 이름 (기본값: 'yolov5s.pt')
+        num_classes (int, optional): 사용자 정의 클래스 수. 지정 시 head 레이어 수정
+        
     Returns:
-        model: 로드된 YOLOv5 모델
+        YOLO 모델 객체
     """
-    # YOLOv5 모델을 PyTorch Hub에서 로드
-    model = torch.hub.load('ultralytics/yolov5', model_name, pretrained=pretrained)
+    model = YOLO(model_path)  # pretrained load
 
-    # 클래스 수 변경이 필요한 경우
-    if num_classes is not None:
-        model.model[-1].nc = num_classes
-        model.model[-1].reset_parameters()
+    if num_classes:
+        # 클래스 수가 지정되면 head 수정
+        model.model.nc = num_classes  
+        model.model.names = [f'class_{i}' for i in range(num_classes)]  # 이름 초기화 (원하면 커스텀 가능)
 
     return model
+
+
 
 
 def save_model(model, save_dir="../models", base_name="yolov5", ext=".pt"):
