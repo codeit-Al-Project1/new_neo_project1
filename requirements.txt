@@ -91,5 +91,3 @@ tqdm==4.67.1
 urllib3==2.3.0
 ultralytics==8.0.208
 websocket-client==1.8.0
-widgetsnbextension==4.0.13
-zipp==3.21.0
