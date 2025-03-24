@@ -1,15 +1,23 @@
 import argparse
 import torch
 from src.train_frcnn import train
-from src.predict_frcnn import predict
+from src.test_frcnn import test
+from src.utils import visualization
 
 """
 학습 실행
-python main.py --mode train --batch_size 16 --epochs 3 --optimizer sgd --scheduler plateau --lr 0.001 --weight_decay 0.0005
+python main.py --mode train --batch_size 5 --epochs 30 --optimizer sgd --scheduler plateau --lr 0.001 --weight_decay 0.0005
 
 예측 실행
-python main.py --mode eval --image_path data/sample.jpg
+python main.py --mode test --img_dir "data/test_images"  --> 기본 실행
+python main.py --mode test --img_dir "data/test_images" --debug --visualization --> 디버그 + 시각화 추가
+python main.py --mode test --img_dir "data/test_images" --test_batch_size 4 --threshold 0.5 --debug --visualization --> 배치 조정, 임계값 조정
 
+- model_path: weight & bias 정보가 담긴 .pth 파일이 존재할 경우 경로 지정.
+- test_batch_size: (default) 4
+- threshold: (default) 0.5
+- debug: 입력시 True, 아니면 False
+- visualization: 입력시 True, 아니면 False
 """
 
 
@@ -17,7 +25,7 @@ def main():
     parser = argparse.ArgumentParser(description="Fast R-CNN Object Detection")
     
     # 공통 인자
-    parser.add_argument("--mode", type=str, choices=["train", "predict"], required=True, help="모드를 선택하세요: train 또는 predict")
+    parser.add_argument("--mode", type=str, choices=["train", "test"], required=True, help="모드를 선택하세요: train 또는 predict")
 
     # Train 모드 인자
     parser.add_argument("--img_dir", type=str, default="data/train_images", help="이미지 폴더 경로")
@@ -30,9 +38,11 @@ def main():
     parser.add_argument("--weight_decay", type=float, default=0.0005, help="L2 정규화")
     parser.add_argument("--debug", action="store_true", help="디버그 모드 활성화")
 
-    # Predict 모드 인자
-    parser.add_argument("--model_path", type=str, default="models/fast_rcnn.pth", help="저장된 모델 경로")
-    parser.add_argument("--image_path", type=str, help="예측할 이미지 경로 (predict 모드에서 필요)")
+    # Test 모드 인자
+    parser.add_argument("--model_path", type=str, required=False, help="테스트할 모델 경로")
+    parser.add_argument("--test_batch_size", type=int, default=4, help="테스트 배치 사이즈")
+    parser.add_argument("--threshold", type=float, default=0.5, help="예측 임계값")
+    parser.add_argument("--visualization", action="store_true", help="시각화 여부")
 
     args = parser.parse_args()
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -51,19 +61,20 @@ def main():
             debug=args.debug
         )
 
-    elif args.mode == "predict":
-        if not args.image_path:
-            print("predict 모드에서는 --image_path를 지정해야 합니다.")
-            return
-        if not args.model_path:
-            print("predict 모드에서는 --model_path를 지정해야 합니다.")
-            return
-
-        predict(
-            image_path=args.image_path,
+    elif args.mode == "test":
+        results, idx_to_name = test(
+            img_dir=args.img_dir,
+            device=device,
             model_path=args.model_path,
-            device=args.device
+            batch_size=args.test_batch_size,
+            threshold=args.threshold,
+            debug=args.debug
         )
+
+        if args.visualization:
+            visualization(results, idx_to_name, page_size=20, page=0, debug=args.debug)
 
 if __name__ == "__main__":
     main()
+
+

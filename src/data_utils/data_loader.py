@@ -6,9 +6,8 @@
 #
 # 파싱 인자 설명:
 # --mode (필수)  
-#   - 선택 가능 값: 'train', 'val', 'test'  
-#   - train  : 학습용 데이터셋 로드 및 디버깅 실행  
-#   - val    : 검증용 데이터셋 로드 및 디버깅 실행  
+#   - 선택 가능 값: 'train', 'test'  
+#   - train  : 학습용/검증용 데이터셋 로드 및 디버깅 실행  
 #   - test   : 테스트용 데이터셋 로드 (어노테이션 없이 이미지와 파일명 반환)  
 #
 # --batch_size (선택, default=4)  
@@ -54,14 +53,14 @@ import os
 import json
 from PIL import Image
 import torch
-from torch.utils.data import Dataset, DataLoader, random_split
+from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms.v2 as T
 from torchvision.tv_tensors import BoundingBoxes, Image as TVImage
 import argparse 
 import sys
 
 ####################################################################################################
-# 1. 데이터 증강을 위한 transform 정의
+# 1. 데이터 증강 및 전처리 Transform 정의 (학습/검증/테스트 분기)
 def get_transforms(mode='train'):
     """
     데이터 증강 및 전처리 함수를 반환합니다.
@@ -72,15 +71,21 @@ def get_transforms(mode='train'):
     Returns:
         torchvision.transforms.v2.Compose: 변환 함수
     """
+<<<<<<< HEAD
     ################################################################################################################################
     # 리사이즈 크기 설정해야할수도?
     ################################################################################################################################
+=======
+
+    # TODO: 리사이즈 크기 지정 필요 여부 검토 (현재 자동 처리)
+
+>>>>>>> develop
     if mode == 'train':
         return T.Compose([
-            T.ToImage(), # PIL → TVImage 자동 변환
+            T.ToImage(), # PIL.Image → torchvision TVTensor (Image) 자동 변환
             T.RandomHorizontalFlip(),   # 수평 뒤집기
             T.RandomVerticalFlip(),     # 수직 뒤집기
-            T.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),   # 밝기 조절
+            T.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),   # 밝기/대비/채도/색조 조절 (약간의 랜덤 변형)
             T.ToDtype(torch.float32, scale=True)  # 0 ~ 1 스케일링
         ])
     elif mode == "val" or mode == "test":
@@ -93,20 +98,21 @@ def get_transforms(mode='train'):
 
 ####################################################################################################
 # 2. json파일에서 카테고리 매핑을 만드는 함수
-def get_category_mapping(ann_dir):
+def get_category_mapping(ann_dir, debug=False):
     """
     어노테이션 디렉토리 내 JSON 파일들을 탐색하여  
     카테고리 ID와 이름 간의 매핑을 생성하고,  
     이름 기준 정렬 후 인덱스를 재부여하는 함수입니다.
 
     Args:
-        ann_dir (str): 어노테이션 JSON 파일들이 저장된 디렉토리 경로
+        ann_dir (str): 어노테이션 JSON 파일들이 저장된 디렉토리 경로  
+               (YOLO 데이터셋 준비 시 txt 경로 사용 가능성 있음)
 
     Returns:
         name_to_idx (dict):  
             - Key: 카테고리 이름 (str)  
             - Value: 인덱스 (int)  
-            - 0은 'Background'로 설정하며, 마지막 인덱스는 'No Class'로 지정합니다.
+            - 0은 'Background', 마지막 인덱스는 'No Class'로 자동 지정 (범주 외 예외처리용)
 
         idx_to_name (dict):  
             - Key: 인덱스 (int)  
@@ -115,7 +121,7 @@ def get_category_mapping(ann_dir):
 
     Note:
         - 중복된 카테고리 이름은 제거 후 정렬합니다.
-        - 이름 기준으로 정렬하여 일관된 인덱스를 제공합니다.
+        - 이름 기준 정렬 및 1부터 인덱싱(0: Background, 마지막: No Class) 규칙을 따릅니다.
         - 추후 모델 학습 시 카테고리 ID → 카테고리 이름 매핑 및 시각화에 활용됩니다.
     """
     # 디버깅 메시지 출력
@@ -125,12 +131,26 @@ def get_category_mapping(ann_dir):
         raise FileNotFoundError(f"ann_dir 경로가 존재하지 않습니다: {ann_dir}")
     
     id_to_name = {}
-    #  id -> name 매핑 수집
+    # 어노테이션 폴더 내 파일 순회
     for file in os.listdir(ann_dir):
-        with open(os.path.join(ann_dir, file), 'r', encoding='utf-8') as f:
-            ann = json.load(f)
-            for cat in ann['categories']:
-                id_to_name[cat['id']] = cat['name']
+        file_path = os.path.join(ann_dir, file)
+
+        if file.endswith(".json"):
+            # JSON 파일 처리
+            with open(file_path, 'r', encoding='utf-8') as f:
+                ann = json.load(f)
+                categories = ann.get('categories', [])
+
+                # 디버깅
+                if debug:
+                    print(f"[DEBUG] '{file}'에서 추출된 카테고리: {[cat['name'] for cat in categories]}")
+
+                for cat in categories:
+                    id_to_name[cat['id']] = cat['name']
+
+    # 디버깅
+    if debug:
+        print(f"[DEBUG] '{ann_dir}' 내 고유 카테고리 (중복 제거 전): {list(id_to_name.values())}")    
 
     # 이름 기준 정렬
     sorted_names = sorted(set(id_to_name.values())) # 중복 제거 후 정렬
@@ -139,16 +159,23 @@ def get_category_mapping(ann_dir):
     name_to_idx = {'Background': 0}
     for idx, name in enumerate(sorted_names, start=1):
         name_to_idx[name] = idx
-    name_to_idx['No Class'] =  len(name_to_idx)
+    name_to_idx['No Class'] = len(name_to_idx)
 
     # 역 매핑
     idx_to_name = {idx: name for name, idx in name_to_idx.items()}
+    
+    # 디버깅
+    if debug:
+        print("[DEBUG] 최종 카테고리 → 인덱스 매핑 (name_to_idx):")
+        for k, v in name_to_idx.items():
+            print(f"  - {k}: {v}")
+
     return name_to_idx, idx_to_name
 
 ####################################################################################################
-# 3. 데이터셋
+# 3-1. 데이터셋(FRCNN)
 class PillDataset(Dataset):
-    def __init__(self, image_dir, ann_dir=None, mode='train', category_mapping=None, transform=None, debug=False):
+    def __init__(self, image_dir, ann_dir=None, mode='train', category_mapping=None, transform=None, bbox_format="XYXY", debug=False):
         """
         PillDataset 클래스
 
@@ -161,7 +188,7 @@ class PillDataset(Dataset):
             mode (str): 'train', 'val', 'test' 중 하나로 데이터셋의 동작 모드를 결정  
             category_mapping (dict): 카테고리 이름과 인덱스 매핑 정보  
             transform (callable, optional): 이미지 및 bounding box에 적용할 변환 함수  
-            debug (bool): 이미지/어노테이션 불일치 시 경고 출력 여부  
+            debug (bool): True일 경우 불일치 및 파일 정보 등을 출력하여 디버깅 용도로 활용
 
         Notes:
             - train/val 모드에서는 이미지-어노테이션 쌍을 필터링 후 로드합니다.  
@@ -173,11 +200,13 @@ class PillDataset(Dataset):
         if ann_dir is not None and not isinstance(ann_dir, str):
             raise TypeError(f"ann_dir는 문자열(str)이거나 None이어야 합니다. 현재 타입: {type(ann_dir)}")
         if mode not in ['train', 'val', 'test']:
-            raise ValueError(f"mode는 'train', 'val', 'test' 중 하나여야 합니다. 현재 입력: {mode}")
+            raise ValueError(f"mode는 'train', 'test' 중 하나여야 합니다. 현재 입력: {mode}")
         if category_mapping is not None and not isinstance(category_mapping, dict):
             raise TypeError(f"category_mapping은 dict 타입이어야 합니다. 현재 타입: {type(category_mapping)}")
         if transform is not None and not callable(transform):
             raise TypeError(f"transform은 호출 가능 객체이어야 합니다. 현재 타입: {type(transform)}")
+        if not isinstance(bbox_format, str):
+            raise TypeError(f"bbox_format는 문자열(str)이어야 합니다. 현재 타입: {type(bbox_format)}")
         if not isinstance(debug, bool):
             raise TypeError(f"debug는 bool 타입이어야 합니다. 현재 타입: {type(debug)}")
         
@@ -187,6 +216,7 @@ class PillDataset(Dataset):
         self.mode = mode
         self.transform = transform
         self.category_mapping = category_mapping    # 카테고리 이름 <-> 아이디 매핑
+        self.bbox_format = bbox_format
 
         # 이미지
         self.images = sorted(os.listdir(image_dir))
@@ -236,7 +266,7 @@ class PillDataset(Dataset):
             idx (int): 호출할 데이터의 인덱스  
 
         Returns:
-            - train/val 모드:  
+            - train/val 모드: 이미지 텐서와 COCO-style targets 딕셔너리 반환 
                 img (TVImage): 이미지 텐서  
                 targets (dict):  
                     - boxes (BoundingBoxes): 바운딩 박스 좌표  
@@ -245,9 +275,8 @@ class PillDataset(Dataset):
                     - area (torch.Tensor): 객체 영역  
                     - is_crowd (torch.Tensor): crowd 플래그 (0으로 고정)  
                     - orig_size (torch.Tensor): 원본 이미지 크기  
-                    - pill_names (list): 바운딩 박스에 해당하는 알약 이름  
 
-            - test 모드:  
+            - test 모드: 이미지 텐서 및 파일 이름 반환 (추론 시 사용) 
                 img (TVImage): 이미지 텐서  
                 img_file (str): 이미지 파일명 (추론 시 사용)  
         """
@@ -288,12 +317,29 @@ class PillDataset(Dataset):
             areas = [obj["area"] for obj in ann["annotations"]]
             image_id = ann["images"][0]["id"]
 
-            # 텐서로 변환 tv_tensor
-            bboxes_tensor = BoundingBoxes(
-                torch.tensor(bboxes, dtype=torch.float32),
-                format="XYWH",
-                canvas_size=(img.height, img.width)
-            )
+            # Faster RCNN을 위한 bbox 형식 변환
+            if self.bbox_format == "XYXY":
+                bboxes_xyxy = []
+                for bbox in bboxes:
+                    xmin, ymin, width, height = bbox
+                    xmax = xmin + width
+                    ymax = ymin + height
+                    bboxes_xyxy.append([xmin, ymin, xmax, ymax])
+
+                # 텐서로 변환 tv_tensor
+                bboxes_tensor = BoundingBoxes(
+                    torch.tensor(bboxes_xyxy, dtype=torch.float32),
+                    format=self.bbox_format,
+                    canvas_size=(img.height, img.width)
+                )
+            # YOLO를 위한 bbox 형식 변환
+            elif self.bbox_format == "XYWH":
+                bboxes_tensor = BoundingBoxes(
+                    torch.tensor(bboxes, dtype=torch.float32),
+                    format=self.bbox_format,
+                    canvas_size=(img.height, img.width)
+                )
+            
             labels_tensor = torch.tensor(labels, dtype=torch.int64)
             areas_tensor = torch.tensor(areas, dtype=torch.float32)
             image_id_tensor = torch.tensor(image_id, dtype=torch.int64)
@@ -312,7 +358,6 @@ class PillDataset(Dataset):
                 'area': areas_tensor,       # 없는 경우가 존재함
                 'is_crowd': iscrowd_tensor,
                 'orig_size': orig_size_tensor,
-                'pill_names': pill_names
             }
             
 
@@ -387,24 +432,45 @@ class PillDataset(Dataset):
             print(f"Error loading annotation file: {ann_path}, {e}")
             return None
         
+####################################################################################################
+# 3-2. 데이터셋(YOLO)
+# class YOLODataset(Dataset):
+#     def __ini__(self, img_dir, txt_dir, mode='train', category_mapping=None, transform=None, bbox_format="XYWH", debug=False):
+#         self.img_dir = img_dir
+#         self.txt_dir = txt_dir
+#         self.transform = transform
+#         self.category_mapping = category_mapping
+#         self.bbox_format = bbox_format
+#         self.debug = debug
+
+#         self.txt_files = sorted([f for f in os.listdir(txt_dir) if f.endswith('.txt')])
+#         self.image_files = sorted([f for f in os.listdir(img_dir) if f.endswith(('.png'))])
+
+#         if self.mode in ['train', 'val']:
+#             assert txt_dir is not None, "Train/Val 모드에서는 txt_dir가 필요합니다."
+#             # 이름 비교
+#             # txt_basename = 
+#             pass
+        
 
 ####################################################################################################
 # 4. 데이터 로더 함수
-def get_loader(img_dir, ann_dir=None, batch_size=8, mode="train", val_ratio=0.2, debug=False, seed=42):
+def get_loader(img_dir, ann_dir=None, batch_size=8, mode="train", val_ratio=0.2, bbox_format="XYXY", debug=False, seed=42):
     """
     데이터 로더를 반환하는 함수
 
     Args:
         img_dir (str): 이미지 폴더 경로
-        ann_dir (str): 어노테이션 폴더 경로
+        ann_dir (str, optional): 어노테이션 폴더 경로 (train/val 모드에서 필수)
         batch_size (int): 배치 크기
-        mode (str): 'train', 'val', 'test' 중 하나
-        val_ratio (float): 검증 데이터셋 비율
-        debug (bool): 디버깅 모드 (True일 경우 배치 데이터 출력)
-        seed (int): 랜덤 시드
+        mode (str): 'train' → (train_loader, val_loader) 반환 / 'test' → test_loader 반환
+        val_ratio (float): 검증 데이터셋 비율 (0 ~ 1)
+        debug (bool): True일 경우 디버깅 정보 출력
+        seed (int): 랜덤 시드 (재현성 보장)
 
     Returns:
-        torch.utils.data.DataLoader: 해당 모드의 데이터 로더
+        - mode='train': (train_loader, val_loader) 반환
+        - mode='test': test_loader 반환
     """
     # 디버깅 메시지 출력
     if not isinstance(img_dir, str):
@@ -413,18 +479,22 @@ def get_loader(img_dir, ann_dir=None, batch_size=8, mode="train", val_ratio=0.2,
         raise TypeError(f"ann_dir는 문자열(str)이거나 None이어야 합니다. 현재 타입: {type(ann_dir)}")
     if not isinstance(batch_size, int) or batch_size <= 0:
         raise ValueError(f"batch_size는 양의 정수여야 합니다. 현재 입력: {batch_size}")
-    if mode not in ['train', 'val', 'test']:
-        raise ValueError(f"mode는 'train', 'val', 'test' 중 하나여야 합니다. 현재 입력: {mode}")
+    if mode not in ['train', 'test']:
+        raise ValueError(f"mode는 'train', 'test' 중 하나여야 합니다. 현재 입력: {mode}")
     if not (0 < val_ratio < 1):
         raise ValueError(f"val_ratio는 0과 1 사이의 실수여야 합니다. 현재 입력: {val_ratio}")
     if not isinstance(debug, bool):
         raise TypeError(f"debug는 bool 타입이어야 합니다. 현재 타입: {type(debug)}")
     
     # 트랜스폼
-    transforms = get_transforms(mode=mode)
+    if mode == 'train':
+        transforms_train = get_transforms(mode='train')
+        transforms_val = get_transforms(mode='val')
+    else:
+        transforms_test = get_transforms(mode='test')
 
-    # 카테고리 매핑 (train/val에서만 필요)
-    if mode in ['train', 'val']:
+    # 카테고리 매핑 (train에서만 필요)
+    if mode == 'train':
         name_to_idx, idx_to_name = get_category_mapping(ann_dir=ann_dir)
         # 매핑 보여주기
         if debug:
@@ -438,55 +508,82 @@ def get_loader(img_dir, ann_dir=None, batch_size=8, mode="train", val_ratio=0.2,
             max_idx_len = len(str(max(idx_to_name.keys())))  # 인덱스 최대 길이 구하기
             for idx in sorted(idx_to_name.keys()):
                 print(f"  {idx:>{max_idx_len}}: {idx_to_name[idx]}")
-
     else:
         name_to_idx, idx_to_name = None, None
-
-    # 데이터셋
-    dataset = PillDataset(image_dir=img_dir, ann_dir=ann_dir, mode=mode, category_mapping=name_to_idx, transform=transforms, debug=debug)
-
-    # [DEBUG 추가]
-    if debug and mode in ['train', 'val']:
-        print(f"\n[DEBUG] 전체 데이터셋 크기: {len(dataset)}개")
 
     # collator 정의
     def collator(batch):
         batch = [b for b in batch if b is not None] # None 제거
         return tuple(zip(*batch)) if batch else None
 
-    # 랜덤시드 설정
-    generator = torch.Generator().manual_seed(seed) # 시드 고정
-
     # 훈련/검증의 경우
     if mode == 'train' or mode == 'val':
+        # 데이터셋
+        base_dataset = PillDataset(image_dir=img_dir, ann_dir=ann_dir, mode=mode, category_mapping=name_to_idx, transform=None, bbox_format=bbox_format, debug=debug)
+
+        # [DEBUG 추가]
+        if debug:
+            print(f"\n[DEBUG] 전체 데이터셋 크기: {len(base_dataset)}개")
+
         # 훈련/ 검증 분리하기
-        train_size = int((1 - val_ratio) * len(dataset))
-        train_dataset, val_dataset = random_split(dataset, [train_size, len(dataset) - train_size], generator=generator)
+        from sklearn.model_selection import train_test_split
+        
+        # 라벨 추출
+        labels_for_stratify = []
+        for idx in range(len(base_dataset)):
+            ann = base_dataset.get_ann_info(idx)
+            if ann is not None and ann["annotations"]:
+                rep_label = ann["annotations"][0]["category_id"]
+            else:
+                rep_label = 0
+            labels_for_stratify.append(rep_label)
+        
+        train_idx, val_idx = train_test_split(
+            range(len(base_dataset)), test_size=val_ratio, random_state=seed, stratify=labels_for_stratify
+        )
+
+        # Stratify 후 디버깅 출력
+        if debug:
+            print(f"[DEBUG] Stratify 분리 완료: Train {len(train_idx)}개 / Val {len(val_idx)}개")
+
+        
+        # Custom subset 클래스
+        class TransformedSubset(Dataset):
+            def __init__(self, dataset, indices, transform):
+                self.dataset = dataset
+                self.indices = indices
+                self.transform = transform
+            def __getitem__(self, idx):
+                img, targets = self.dataset[self.indices[idx]]
+                if self.transform:
+                    img, boxes = self.transform(img, targets['boxes'])
+                targets['boxes'] = boxes
+                return img, targets
+            def __len__(self):
+                return len(self.indices)
+        
+        train_dataset = TransformedSubset(base_dataset, train_idx, transforms_train)
+        val_dataset = TransformedSubset(base_dataset, val_idx, transforms_val)
 
         # [DEBUG 추가]
         if debug:
             print(f"[DEBUG] 랜덤시드 고정: {seed}")
-            print(f"[DEBUG] Train/Val Split: Train = {train_size}, Val = {len(dataset) - train_size}")
+            print(f"[DEBUG] Train/Val 분리: Train size = {len(train_dataset)}, Val size = {len(val_dataset)}")
 
-        loader = DataLoader(
-            train_dataset if mode == 'train' else val_dataset,
-            batch_size=batch_size,
-            shuffle=(mode == 'train'),
-            drop_last=True,
-            collate_fn=collator
-        )
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True, collate_fn=collator)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, drop_last=False, collate_fn=collator)
 
         if debug:
-            print(f"\n[DEBUG] {mode} loader 배치 수: {len(loader)}")
-            for batch in loader:
+            print(f"\n[DEBUG] train loader 배치 수: {len(train_loader)}")
+            for batch_idx, batch in enumerate(train_loader):
                 if batch is not None:
                     images, targets = batch
+                    print(f"[DEBUG] 현재 배치 index: {batch_idx}")
                     print(f"[DEBUG] Batch size: {len(images)}")
                     print(f"[DEBUG] 첫 이미지 크기: {images[0].shape}")
 
                     sample_target = targets[0]
                     boxes = sample_target['boxes']
-                    areas = sample_target['area']
                     print(f"[DEBUG] 첫 샘플 image_id: {sample_target['image_id'].item()}")
                     print(f"[DEBUG] 박스 개수: {boxes.shape[0]}")
                     print(f"[DEBUG] 박스 크기 (W,H) 최대/최소: {boxes[:, 2:].max().item()}, {boxes[:, 2:].min().item()}")
@@ -496,18 +593,25 @@ def get_loader(img_dir, ann_dir=None, batch_size=8, mode="train", val_ratio=0.2,
                         if count > 0:
                             label_name = name_to_idx and idx_to_name.get(idx, "Unknown")
                             print(f"  - {idx}: {label_name} → {count}회")
-                        
-                    print(f"[DEBUG] 이미지 텐서 메모리: {images[0].element_size() * images[0].nelement() / 1024 ** 2:.2f}MB")
-                    print(f"[DEBUG] Pill names (샘플): {sample_target['pill_names']}")                                 
-                break
+                    break
+            
+            print(f"\n[DEBUG] val loader 배치 수: {len(val_loader)}")
+            for batch_idx, batch in enumerate(val_loader):
+                if batch is not None:
+                    images, targets = batch
+                    print(f"[DEBUG] 현재 배치 index: {batch_idx}")
+                    print(f"[DEBUG] Val Batch size: {len(images)}")
+                    print(f"[DEBUG] Val 첫 이미지 크기: {images[0].shape}")
+                    break
 
-        return loader
+
+        return train_loader, val_loader
     
     # 시험의 경우
     elif mode == 'test':
-        test_loader = DataLoader(
-            dataset, batch_size=batch_size, shuffle=False, drop_last=False, collate_fn=collator
-        )
+        test_dataset = PillDataset(image_dir=img_dir, ann_dir=ann_dir, mode='test', category_mapping=name_to_idx, transform=transforms_test, bbox_format=bbox_format, debug=debug)
+
+        test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, drop_last=False, collate_fn=collator)
 
         # 배치 사이즈 예시
         if debug:
@@ -523,24 +627,33 @@ def get_loader(img_dir, ann_dir=None, batch_size=8, mode="train", val_ratio=0.2,
         return test_loader
     
     else:
-        raise ValueError(f"Invalid mode: {mode}. Choose either 'train', 'val', or 'test'.")
+        raise ValueError(f"Invalid mode: {mode}. Choose either 'train' or 'test'.")
 
 ####################################################################################################
+<<<<<<< HEAD
 # 5. 메인 시작    
+=======
+# 5. 메인 시작
+>>>>>>> develop
 if __name__ == "__main__":
     # argparse 시작
     parser = argparse.ArgumentParser(description="PillDataset DataLoader Debug Runner")
-    parser.add_argument('--mode', type=str, default='train', choices=['train', 'val', 'test'], help="운영 모드")
+    parser.add_argument('--mode', type=str, default='train', choices=['train', 'val', 'test'], help="운영 모드 (train/val/test)")
     parser.add_argument('--batch_size', type=int, default=8, help="배치 크기")
     parser.add_argument('--debug', action='store_true', help="디버깅 모드 여부")
     parser.add_argument('--val_ratio', type=float, default=0.2, help="검증 데이터셋 비율 (0 ~ 1)")
     parser.add_argument('--seed', type=int, default=42, help="랜덤 시드 (재현성 보장)")
+<<<<<<< HEAD
+=======
+
+>>>>>>> develop
     args = parser.parse_args()
 
-#     TRAIN_ROOT = "data/train_images"
-#     TRAIN_ANN_DIR = "data/train_annots_modify"
-#     TEST_ROOT = "data/test_images"
+    TRAIN_ROOT = "data/train_images"
+    TRAIN_ANN_DIR = "data/train_annots_modify"
+    TEST_ROOT = "data/test_images"
 
+<<<<<<< HEAD
 #     # 선택한 모드에 맞춰 로더 실행 및 디버깅 테스트
 #     if args.mode in ['train', 'val']:
 #         loader = get_loader(TRAIN_ROOT, TRAIN_ANN_DIR, batch_size=args.batch_size, mode=args.mode, val_ratio=args.val_ratio, debug=args.debug, seed=args.seed)
@@ -550,3 +663,27 @@ if __name__ == "__main__":
 #         print("test loader 생성 완료.")
 #     else:
 #         raise ValueError("잘못된 mode 값입니다. 'train', 'val', 'test' 중 하나를 입력하세요.")
+=======
+    # 선택한 모드에 맞춰 로더 실행 및 디버깅 테스트
+    if args.mode == 'train':
+        train_loader, val_loader = get_loader(TRAIN_ROOT, TRAIN_ANN_DIR, batch_size=args.batch_size, mode='train', val_ratio=args.val_ratio, debug=args.debug, seed=args.seed)
+        print("train loader & val loader 생성 완료.")
+
+    elif args.mode == 'val':
+        _, val_loader = get_loader(TRAIN_ROOT, TRAIN_ANN_DIR, batch_size=args.batch_size, mode='train', val_ratio=args.val_ratio, debug=args.debug, seed=args.seed)
+        print("val loader 생성 완료 (train 모드 내부 val 분리 사용).")
+
+    elif args.mode == 'test':
+        test_loader = get_loader(TEST_ROOT, None, batch_size=args.batch_size, mode='test', debug=args.debug)
+        print("test loader 생성 완료.")
+
+    else:
+        raise ValueError("잘못된 mode 값입니다. 'train', 'val', 'test' 중 하나를 입력하세요.")
+
+    # 공통 출력
+    print("========== [로더 생성 완료] ==========")
+    print(f"모드: {args.mode} | 배치 사이즈: {args.batch_size} | val_ratio: {args.val_ratio}")
+    if args.debug:
+        print("⚠ 디버깅 모드 활성화: 데이터 통계 및 배치 정보 출력")
+    print("======================================")
+>>>>>>> develop

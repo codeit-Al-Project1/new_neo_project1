@@ -1,165 +1,157 @@
+"""
+이 스크립트는 PyTorch를 사용하여 Faster R-CNN 객체 탐지 모델을 학습합니다.
+데이터를 로드하고, 모델을 학습하며, 성능을 평가하고, 가장 좋은 성능을 보인 모델을 저장하는 기능을 포함합니다.
+
+주요 단계:
+1. 데이터셋을 로드하고 어노테이션을 전처리
+2. 주어진 하이퍼파라미터로 모델 학습
+3. 검증을 수행하고 mAP(mean Average Precision) 평가
+4. 검증 성능이 가장 좋은 모델을 저장
+
+필수 라이브러리:
+- numpy
+- torch
+- tqdm
+- src.utils, src.data_utils, src.model_utils의 커스텀 모듈
+"""
+# 외부 모듈듈
 import numpy as np
 import torch
 import torch.optim as optim
 import torch.nn as nn
 from tqdm import tqdm
+
+# 내부 모듈듈
 from src.utils import get_optimizer
 from src.utils import get_scheduler
-from src.utils import calculate_iou
-from src.utils import calculate_ap
-from src.utils import evaluate_predictions_direct
+from src.utils import calculate_map, f1_score
 from src.data_utils.data_loader import get_loader
 from src.data_utils.data_loader import get_category_mapping
 from src.model_utils.basic_frcnn import save_model
 from src.model_utils.basic_frcnn import get_fast_rcnn_model
 
-# 학습 함수 정의
+def train(img_dir: str, json_dir: str, batch_size: int = 8, num_epochs: int = 5, optimizer_name: str = "sgd", 
+          scheduler_name: str = "plateau", lr: float = 0.001, weight_decay: float = 0.0005, 
+          device: str = "cpu", debug: bool = False):
+    """
+    Faster R-CNN 모델을 학습하는 함수
+    
+    파라미터:
+    - img_dir (str): 학습 이미지가 저장된 디렉토리 경로
+    - json_dir (str): 어노테이션 JSON 파일이 저장된 디렉토리 경로
+    - batch_size (int): 미니배치 크기 (기본값: 16)
+    - num_epochs (int): 학습 에폭 수 (기본값: 5)
+    - optimizer_name (str): 옵티마이저 종류 (기본값: 'sgd')
+    - scheduler_name (str): 스케줄러 종류 (기본값: 'plateau')
+    - lr (float): 학습률 (기본값: 0.001)
+    - weight_decay (float): 가중치 감쇠 (기본값: 0.0005)
+    - device (str): 학습을 수행할 디바이스 ('cpu' 또는 'cuda')
+    - debug (bool): 디버깅 모드 활성화 여부
+    """
+    
+    # 입력값 검증
+    assert isinstance(img_dir, str), "img_dir must be a string"
+    assert isinstance(json_dir, str), "json_dir must be a string"
+    assert isinstance(batch_size, int) and batch_size > 0, "batch_size must be a positive integer"
+    assert isinstance(num_epochs, int) and num_epochs > 0, "num_epochs must be a positive integer"
+    assert isinstance(optimizer_name, str), "optimizer_name must be a string"
+    assert isinstance(scheduler_name, str), "scheduler_name must be a string"
+    assert isinstance(lr, float) and lr > 0, "lr must be a positive float"
+    assert isinstance(weight_decay, float) and weight_decay >= 0, "weight_decay must be a non-negative float"
+    assert isinstance(device, str), "device must be a string"
+    assert isinstance(debug, bool), "debug must be a boolean"
 
-def train(img_dir, json_dir, batch_size=16, num_epochs=5, optimizer_name="sgd", scheduler_name ="plateau", lr=0.001, weight_decay=0.0005, device="cpu", debug=False):
+    # 데이터 로드 및 클래스 매핑
+    name_to_idx, idx_to_name = get_category_mapping(json_dir)
+    num_classes = len(name_to_idx)
 
-    # bbox 모델 맞추는 함수
-    # def format_bbox(targets, device):
-    #     formatted_targets = []
-    #     for t in targets:
-    #         boxes = t["boxes"]  # BoundingBox (XYWH format)
-    #         if len(boxes) == 0:  # 빈 박스를 처리 (이 경우는 넘어가거나 에러 처리 가능)
-    #             continue
-    #         # XYWH -> XYXY로 변환 (모델에 맞는 형식으로 변경)
-    #         xyxy_boxes = []
-    #         for box in boxes:
-    #             x_min = box[0] - box[2] / 2  # 좌상단 x
-    #             y_min = box[1] - box[3] / 2  # 좌상단 y
-    #             x_max = box[0] + box[2] / 2  # 우하단 x
-    #             y_max = box[1] + box[3] / 2  # 우하단 y
-    #             xyxy_boxes.append([x_min, y_min, x_max, y_max])
+    train_loader = get_loader(img_dir, json_dir, batch_size, mode="train", val_ratio=0.2, bbox_format="XYXY", debug=debug)
+    val_loader = get_loader(img_dir, json_dir, batch_size, mode="val", val_ratio=0.2, bbox_format="XYXY", debug=debug)
 
-    #         xyxy_boxes = torch.tensor(xyxy_boxes, dtype=torch.float32).to(device)  # 텐서를 GPU로 이동
-
-    #         formatted_targets.append({
-    #             "boxes": xyxy_boxes,  # BoundingBox를 텐서로 변환
-    #             "labels": t["labels"].to(device),  # 클래스 레이블
-    #         })
-
-    #     return formatted_targets
-    # bbox 모델 맞추는 함수 (벡터 연산으로 최적화)
-    def format_bbox(targets, device):
-        formatted_targets = []
-        for t in targets:
-            if len(t["boxes"]) == 0:  # 빈 박스 처리
-                continue
-            
-            boxes = np.array(t["boxes"])  # 리스트 → NumPy 배열 변환
-            x_min = boxes[:, 0] - boxes[:, 2] / 2
-            y_min = boxes[:, 1] - boxes[:, 3] / 2
-            x_max = boxes[:, 0] + boxes[:, 2] / 2
-            y_max = boxes[:, 1] + boxes[:, 3] / 2
-
-            xyxy_boxes = np.stack([x_min, y_min, x_max, y_max], axis=1)
-            xyxy_boxes = torch.tensor(xyxy_boxes, dtype=torch.float32).to(device)
-
-            formatted_targets.append({
-                "boxes": xyxy_boxes,
-                "labels": t["labels"].to(device),
-            })
-        return formatted_targets
-
-    name_to_idx, idx_to_name = get_category_mapping(json_dir)  # 카테고리 매핑 정보를 불러옵니다.
-    num_classes = len(name_to_idx) + 1  # 클래스 수 : 74
-
-    # 학습용 데이터 로더, 분할
-    train_loader = get_loader(img_dir, json_dir, batch_size, mode="train", val_ratio=0.2, debug=debug)
-    val_loader = get_loader(img_dir, json_dir, batch_size, mode="val", val_ratio=0.2, debug=debug)
-
-    # 모델, 옵티마이저, 스케쥴러 정의
+    # 모델 및 학습 설정
     model = get_fast_rcnn_model(num_classes).to(device)
     optimizer = get_optimizer(optimizer_name, model, lr, weight_decay)
-    scheduler = get_scheduler(scheduler_name, optimizer, T_max=100)  # T_max는 cosine만 적용되는 파라미터
+    scheduler = get_scheduler(scheduler_name, optimizer, step_size=5, gamma=0.1, T_max=100) # T_max는 CosineAnnealingLR에서만 사용
 
+    # 검증 데이터셋 평가
     best_map_score = 0
-
+    
     # 학습 루프
     for epoch in range(num_epochs):
         model.train()
         total_loss = 0
         epoch_loss_details = {}
 
-        # 1. 학습 단계
         progress_bar = tqdm(train_loader, total=len(train_loader), desc="Train", dynamic_ncols=True)
 
         # images 포맷 맞추기
         for images, targets in progress_bar:
-            images = [img.to(device) for img in images]
+            images = [img.to(device) for img in images] 
+            targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
-            # target 포맷 맞추기
-            formatted_targets = format_bbox(targets, device)    
-
-            # 모델 학습
-            optimizer.zero_grad()  # gradient 초기화
-            loss_dict = model(images, formatted_targets)
+            loss_dict = model(images, targets)
             losses = sum(loss for loss in loss_dict.values())
 
             losses.backward()
-
-            # Gradient Clipping 추가
             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
             optimizer.step()
 
             total_loss += losses.item()
 
-            # 개별 손실 요소 누적
             for k, v in loss_dict.items():
                 if k not in epoch_loss_details:
                     epoch_loss_details[k] = 0
                 epoch_loss_details[k] += v.item()
 
-            # tqdm 진행 바의 postfix 업데이트
             avg_loss_details = ", ".join([f"{k}: {v / len(train_loader):.4f}" for k, v in epoch_loss_details.items()])
             progress_bar.set_postfix(Avg_Loss=avg_loss_details)
 
-        avg_loss_details = ", ".join([f"{k}: {v / len(train_loader):.4f}" for k, v in epoch_loss_details.items()])
         print(f"Epoch {epoch+1} Complete - Total Loss: {total_loss:.4f}, Avg Loss Per Component: {avg_loss_details}")
 
-
-        # 2. 검증 단계
-        model.eval()
-        all_predictions = []
-        all_targets = []
-
+        # 검증
         with torch.no_grad():
+            model.eval()
+            total_mAP = []
+            predictions = []
+            targets_list = []
             for images, targets in tqdm(val_loader, desc="Validation", dynamic_ncols=True):
+
                 images = [img.to(device) for img in images]
-                formatted_targets = format_bbox(targets, device)
 
-                # 모델 예측
-                predictions = model(images)
+                outputs = model(images)
 
-                # 예측 결과를 리스트에 저장
-                all_predictions.extend(predictions)
-                all_targets.extend(formatted_targets)
+                # 예측값 정리
+                for output in outputs:
+                    predictions.append({
+                        'boxes': output['boxes'].cpu().numpy().tolist(),
+                        'labels': output['labels'].cpu().numpy().tolist(),
+                        'scores': output['scores'].cpu().numpy().tolist()
+                    })
 
-        # mAP 계산
-        total_ap_score = 0
-        for i in range(len(all_predictions)):
-            ap_score = evaluate_predictions_direct(all_predictions[i], all_targets[i], num_classes)
-            total_ap_score += ap_score
+                # 실제값 정리
+                for target in targets:
+                    targets_list.append({
+                        'boxes': target['boxes'].cpu().numpy().tolist(),
+                        'labels': target['labels'].cpu().numpy().tolist()
+                    })
 
-        avg_map_score = total_ap_score / len(all_predictions) if len(all_predictions) > 0 else 0
-        print(f"Average Precision (mAP) for the validation set: {avg_map_score:.4f}")
+            # mAP 계산
+            map_score = calculate_map(predictions, targets_list, num_classes, iou_threshold=0.5)
 
-        # 3. 모델 저장
-        if avg_map_score > best_map_score:
-            best_map_score = avg_map_score
+            print(f"mAP: {map_score}")
+            
+                
+
+        # 모델 저장
+        if map_score > best_map_score:
+            best_map_score = map_score
             save_model(model, save_dir="./models", base_name="model", ext=".pth")
             print(f"Model saved with mAP score: {best_map_score:.4f}")
         
         # 학습률 스케줄러 업데이트
-        scheduler.step(avg_map_score)
+        if scheduler_name == "plateau":
+            scheduler.step(map_score) # ReduceLROnPlateau의 경우 mode='max'로 설정 (성능이 좋아지면 학습률 감소)
+        else:
+            scheduler.step()
 
     print(f"Training complete. Best mAP: {best_map_score:.4f}")
-
-
-if __name__ == "__main__":
-    train(img_dir="data/train_images", json_dir="data/train_annots_modify", batch_size=16, num_epochs=5, lr=0.001, weight_decay=0.0005, device="cuda", debug=False)
-
-
-

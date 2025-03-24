@@ -37,6 +37,3 @@ def save_model(model, save_dir="./models", base_name="model", ext=".pth"):
     torch.save(model.state_dict(), model_save_path)
     print(f"Model saved to {model_save_path}")
     return model_save_path
-
-def load_model():
-    pass

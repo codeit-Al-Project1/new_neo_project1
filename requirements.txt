@@ -82,12 +82,15 @@ threadpoolctl==3.6.0
 tinycss2==1.4.0
 tomli==2.2.1
 torchinfo==1.8.0
-torch==2.6.0    # 통일 권장 (cu124)
+torch==2.6.0
 torchaudio==2.6.0
-torchinfo==1.8.0        # torchsummary와 택일
+torchinfo==1.8.0
 torchvision==0.21.0
 tornado==6.4.2
 tqdm==4.67.1
 urllib3==2.3.0
 ultralytics==8.0.208
 websocket-client==1.8.0
+widgetsnbextension==4.0.13
+zipp==3.21.0
+# scikit-learn 추가해야함
