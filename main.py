@@ -72,7 +72,7 @@ def main():
         )
 
         if args.visualization:
-            visualization(results, idx_to_name, page_size=20, page=0, debug=args.debug)
+            visualization(results, idx_to_name, page_size=20, debug=args.debug)
 
 if __name__ == "__main__":
     main()

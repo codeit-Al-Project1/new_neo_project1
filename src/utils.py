@@ -194,7 +194,7 @@ def f1_score(precision, recall):
     return score
 
 
-def visualization(results, idx_to_name, page_size=20, page=0, debug=True):
+def visualization(results, idx_to_name, page_size=20, debug=True):
     """
     모델 예측값 시각화
     산발적인 출력 대신, data/results/frcnn폴더에 산출된 결과를 토대로 그려진 이미지 페이지를 저장.
@@ -205,76 +205,102 @@ def visualization(results, idx_to_name, page_size=20, page=0, debug=True):
     - debug: 디버그 여부.
     """
     total_num = len(results)
-    start_idx = page * page_size
-    end_idx = min(start_idx + page_size, total_num)
+    total_pages = np.ceil(total_num / page_size).astype(int)
 
-    print(f"페이지 {page + 1} / {np.ceil(total_num / page_size).astype(int)} | {start_idx} - {end_idx}번째 이미지 표시")
+    print(f"전체 {total_num}개의 이미지, {total_pages} 페이지로 분할 저장합니다.")
 
-    num_images = min(total_num, 20)
-    row_img = max(num_images // 4, 1)
-    col_img = max(num_images // row_img, 1)
-    figsize = (5 * col_img, 5 * row_img)
-
-    print(f"페이지 당 {row_img} 행, {col_img} 열 형태의 이미지 플롯")
-
-    fig, ax = plt.subplots(row_img, col_img, figsize=figsize)
-
-    if row_img == 1 or col_img == 1:
-        ax = np.expand_dims(ax, axis=0)  
-        
-    for i in range(start_idx, end_idx):
-        file_name = results[i]['file_name']
-        image_id = results[i]['category_id']
-        boxes = results[i]['boxes']
-        bbox_num = len(boxes)
-        path = os.path.join('./data/test_images', file_name)
-        dr_name = [idx_to_name[id] for id in image_id]
-
-        if debug:
-            print(f"[{i + 1}] Visualize Image: {file_name}, DRUG ID: {image_id}, BBox Num: {bbox_num}")
-
-
-        if not os.path.exists(path):
-            print(f"[Error] 이미지 경로를 찾을 수 없습니다: {path}")
-            continue 
-
-        image = cv2.imread(path)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-
-        ax_idx = i - start_idx
-        ax_row = ax_idx // col_img
-        ax_col = ax_idx % col_img
-
-        ax[ax_row, ax_col].imshow(image)
-
-        for j in range(bbox_num):
-            draw_bbox(ax[ax_row, ax_col], boxes[j], dr_name[j], color='red')
-
-        ax[ax_row, ax_col].axis("off")
-        ax[ax_row, ax_col].set_title(f"{file_name}")
-
-    page_file_name = f"page_{page + 1}.png"
     save_dir = './data/results/frcnn'
-    
     os.makedirs(save_dir, exist_ok=True)
-    
-    page_save_path = os.path.join(save_dir, page_file_name)
-    plt.tight_layout()
-    plt.savefig(page_save_path, bbox_inches='tight')
 
-    plt.close()
-    print(f"페이지 {page + 1} 이미지가 저장되었습니다: {page_save_path}")
+    for page in range(total_pages):    
+        start_idx = page * page_size
+        end_idx = min(start_idx + page_size, total_num)
+
+        print(f"[페이지 {page + 1} / {total_pages}] | {start_idx} - {end_idx}번째 이미지 표시")
+
+        num_images = end_idx - start_idx
+        col_img = min(4, num_images)
+        row_img = (num_images + col_img - 1) // col_img if num_images > 0 else 1
+        
+        figsize = (5 * col_img, 5 * row_img)
+
+        print(f"페이지 당 {row_img} 행, {col_img} 열 형태의 이미지 플롯")
+
+        fig, ax = plt.subplots(row_img, col_img, figsize=figsize)
+
+        if row_img == 1: 
+            ax = np.expand_dims(ax, axis=0)
+        if col_img == 1:
+            ax = np.expand_dims(ax, axis=1)
+
+        for i in range(start_idx, end_idx):
+            file_name = results[i]['file_name']
+            image_id = results[i]['category_id']
+            boxes = results[i]['boxes']
+            bbox_num = len(boxes)
+            path = os.path.join('./data/test_images', file_name)
+            dr_name = [idx_to_name[id] for id in image_id]
+
+            if debug:
+                print(f"[{i + 1}] Visualize Image: {file_name}, DRUG ID: {image_id}, BBox Num: {bbox_num}")
+
+
+            if not os.path.exists(path):
+                print(f"[Error] 이미지 경로를 찾을 수 없습니다: {path}")
+                continue 
+
+            image = cv2.imread(path)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+            ax_idx = i - start_idx
+            ax_row = ax_idx // col_img
+            ax_col = ax_idx % col_img
+
+            ax[ax_row, ax_col].imshow(image)
+
+            for j in range(bbox_num):
+                draw_bbox(ax[ax_row, ax_col], boxes[j], dr_name[j], color='red')
+
+            ax[ax_row, ax_col].axis("off")
+            ax[ax_row, ax_col].set_title(f"{file_name}")
+
+        page_file_name = f"page_{page + 1}_{start_idx + 1}_{end_idx}.png"
+        page_save_path = os.path.join(save_dir, page_file_name)
+
+        plt.tight_layout()
+        plt.savefig(page_save_path, bbox_inches='tight')
+        plt.close()
+
+        print(f"페이지 {page + 1} 이미지가 저장되었습니다: {page_save_path}")
+
+    print(f"총 {total_pages}페이지 저장 완료!")
 
 
 # ============================한글 폰트=================================================
-import matplotlib.pyplot as plt
-from matplotlib import font_manager, rc
+# Colab 환경에서 실행 중인지 
+import platform
+import warnings
 
-# 한글 폰트 경로 설정 (Windows)
-font_path = "C:/Windows/Fonts/malgun.ttf"  # 말굽고딕 예시
-font_name = font_manager.FontProperties(fname=font_path).get_name()
-rc('font', family=font_name)
+def is_colab():
+    try:
+        # google.colab이 존재하는지 확인하여 Colab 환경을 판별
+        import google.colab
+        return True
+    except ImportError:
+        return False
 
-# 마이너스 기호 깨짐 방지
-plt.rcParams['axes.unicode_minus'] = False
+# Colab 환경일 경우와 로컬 환경일 경우 폰트 설정 분리
+if is_colab():
+    # Colab 환경에서 사용할 한글 폰트 설정 (예: NanumGothic)
+    plt.rc('font', family='NanumBarunGothic')
+    plt.rcParams['axes.unicode_minus'] = False
+    print("Colab 환경에서 실행 중입니다.")
+else:
+    # 로컬 환경에서 사용할 폰트 설정
+    plt.rc('font', family='Malgun Gothic')  # Windows의 경우 'Malgun Gothic' 사용
+    plt.rcParams['axes.unicode_minus'] = False
+    print("로컬 환경에서 실행 중입니다.")
+
+# ▶ Warnings 제거
+warnings.filterwarnings('ignore')
 # ====================================================================================
