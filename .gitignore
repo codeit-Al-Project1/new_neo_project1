@@ -35,6 +35,7 @@ runs/*
 
 # 가상환경 폴더 무시
 pj1/
+
 # 욜로 실행시 나오는 웨이트 .pt 무시
 yolo11n.pt
 yolov8n.pt
