@@ -2,7 +2,7 @@
 # 실행 방법 및 인자 설명 (터미널 기준)
 #
 # 사용법:
-#   python src/data_utils/data_loader.py --mode <모드> --batch_size <배치 크기> [--debug] [--val_ratio <검증 비율>] [--seed <랜덤 시드>
+#   python src/data_utils/data_loader.py --mode <모드> --batch_size <배치 크기> [--debug] [--val_ratio <검증 비율>] [--seed <랜덤 시드>]
 #
 # 파싱 인자 설명:
 # --mode (필수)  
@@ -650,7 +650,6 @@ if __name__ == "__main__":
     parser.add_argument('--debug', action='store_true', help="디버깅 모드 여부")
     parser.add_argument('--val_ratio', type=float, default=0.2, help="검증 데이터셋 비율 (0 ~ 1)")
     parser.add_argument('--seed', type=int, default=42, help="랜덤 시드 (재현성 보장)")
-
     args = parser.parse_args()
 
     TRAIN_ROOT = "data/train_images"

@@ -66,6 +66,5 @@ def save_model(model, session_folder, base_name="best_model", ext=".pth", lr=Non
 
     model_save_path = os.path.join(session_folder, f"{base_name}_{param_str}{ext}")
     torch.save(model.state_dict(), model_save_path)
-
     print(f"Model saved to {model_save_path}")
     return model_save_path
