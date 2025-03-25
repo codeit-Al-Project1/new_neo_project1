@@ -32,8 +32,10 @@ if font_path:
     print(f"폰트 설정 완료: {font_prop.get_name()}")
 else:
     print("지원하지 않는 운영체제입니다.")
-
 ################################################################################
+
+
+
 # PyTorch 2.6 이후는 반드시 안전 글로벌 등록!
 torch.serialization.add_safe_globals([
     DetectionModel, 
@@ -44,7 +46,6 @@ torch.serialization.add_safe_globals([
     Sequential
 ])
 
-# TODO: 
 
 def train(yaml_dir, batch_size=8, num_epochs=5, iou_threshold=0.5, device="cpu", debug=False):
     '''
@@ -61,7 +62,8 @@ def train(yaml_dir, batch_size=8, num_epochs=5, iou_threshold=0.5, device="cpu",
     model.train(
         data=yaml_dir,
         epochs=num_epochs,
-        imgsz=640,
+        imgsz=32,  ## 이미지 사이즈 실험위해 임시 변경
+        # imgsz=640, 
         batch=batch_size,
         patience=10,
         save=True,  
@@ -115,3 +117,6 @@ if __name__ == "__main__":
         plt.grid(False)
         plt.title(os.path.basename(image_file))
         plt.show()
+
+# TODO: 이미지 사이즈 실험위해 임시 변경
+# TODO: 시각화 글자 겹침문제해결
