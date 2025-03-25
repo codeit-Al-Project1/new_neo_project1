@@ -1,122 +1,39 @@
-# #########################################################################
-# # git clone https://github.com/ultralytics/yolov5.git
-# # cd yolov5
-# # pip install -r requirements.txt
-# #########################################################################
-
-# import torch
-# from tqdm import tqdm
-# import os
-# from src.data_utils.data_loader import get_loader, get_category_mapping
-# from src.utils import get_optimizer, get_scheduler  # utils.py에서 가져오기
-# # from src.model_utils.basic_YOLO import get_yolov5  # YOLO 모델
-# # from ultralytics.yolo.utils.loss import ComputeLoss - 이 놈이 너무 문제여서 git clone으로 가져옴
-# ############################################# 추가
-# import sys
-# sys.path.append("yolov5")  # YOLOv5 폴더 경로 추가
-# from yolov5.utils.loss import ComputeLoss  # YOLOv5 공식 코드에서 직접 가져오기
-# from yolov5.models.yolo import Model  # YOLO 모델 로드
-# from src.model_utils.basic_YOLO import get_yolov5
-# import yaml
-
-# def train_YOLO(img_dir, ann_dir, batch_size=8, num_epochs=5, lr=0.001, weight_decay=0.005, optimizer_name="sgd", scheduler_name="step", device="cpu", debug=False):
-#     # 데이터 로더 
-#     train_loader = get_loader("data/train_images/train", "data/train_labels/train", batch_size, mode="train", debug=debug)
-#     val_loader = get_loader("data/train_images/val", "data/train_labels/val", batch_size, mode="val", debug=debug)
-
-#     # 어노테이션 디렉토리를 기준으로 카테고리 매핑 가져오기
-#     name_to_idx, idx_to_name = get_category_mapping(ann_dir)
-
-#     # 클래스 개수는 카테고리 길이로 설정
-#     num_classes = len(name_to_idx)
-
-#     # YOLO 모델 정의
-#     model = get_yolov5(model_path="yolov5s.pt", num_classes=num_classes).to(device)
-#     # model = Model("yolov5/models/yolov5s.yaml")  # YOLOv5s 모델 YAML 사용
-
-#     # 모델에서의 yaml 파일은 모델의 구조를 정의하는 설정 파일
-#     model.nc = num_classes  # 클래스 수 설정
-#     model.to(device)
-
-#     # 옵티마이저, 스케쥴러, 로스 정의
-#     optimizer = get_optimizer(optimizer_name, model, lr, weight_decay)
-#     scheduler = get_scheduler(scheduler_name, optimizer, T_max=100)
-
-#     compute_loss = ComputeLoss(model.model)
-
-#     # 학습률 스케줄러 정의
-#     scheduler = get_scheduler(scheduler_name, optimizer)
-
-#     best_val_loss = float("inf")
-
-#     # 학습 루프
-#     for epoch in range(num_epochs):
-#         print("학습 시작")
-#         model.train()
-#         total_loss = 0
-
-#         train_bar = tqdm(train_loader, total=len(train_loader), desc=f"🟢 Training {epoch+1}/{num_epochs}")
-#         # 학습 단계
-#         for batch_i, (imgs, targets) in tqdm(enumerate(train_loader), total=len(train_loader), desc="Training"):
-#             imgs = imgs.to(device)
-#             targets = targets.to(device)
-
-#             # 모델 학습
-#             optimizer.zero_grad()
-#             loss.backward()
-#             torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-#             optimizer.step()
-#             total_loss += loss.item()
-#             train_bar.set_postfix(loss=loss.item())  # 진행 상태 표시
-        
-#         # 학습 후 스케줄러 업데이트
-#         if scheduler_name == "plateau":
-#             scheduler.step(total_loss)  # ReduceLROnPlateau는 loss를 인자로 받음
-#         else:
-#             scheduler.step()
-
-#         # 2. 검증 단계
-#         model.eval()
-#         val_loss = 0
-#         with torch.no_grad():
-#             val_bar = tqdm(val_loader, total=len(val_loader), desc=f"🔵 Validation {epoch+1}/{num_epochs}")
-#             for imgs, targets in val_bar:
-#                 imgs = imgs.to(device)
-#                 targets = targets.to(device)
-
-#                 preds = model(imgs)
-#                 loss, _ = compute_loss(preds, targets)
-#                 val_loss += loss.item()
-#                 val_bar.set_postfix(val_loss=loss.item())
-
-#         print(f"Epoch {epoch+1} - Train Loss: {total_loss:.4f}, Val Loss: {val_loss:.4f}")
-        
-#         if scheduler_name == "plateau":
-#             scheduler(val_loss)
-#         else:
-#             scheduler()
-
-#         # ✅ 최적 모델 저장
-#         if val_loss < best_val_loss:
-#             best_val_loss = val_loss
-#             print(f"검증 손실 개선됨.. 모델 저장 중... (Best Val Loss: {best_val_loss:.4f})")
-#             save_model(model, epoch, best_val_loss)  # 모델 저장
-
-# def save_model(model, epoch, val_loss):
-#     """ 모델 가중치 저장 함수 """
-#     save_dir = "models/weights"
-#     os.makedirs(save_dir, exist_ok=True)
-#     save_path = os.path.join(save_dir, f"yolov5_epoch_{epoch}_val_{val_loss:.4f}.pt")
-#     torch.save(model.state_dict(), save_path)
-#     print(f"모델 저장 완료: {save_path}")
-
-
 import torch
 from ultralytics.nn.tasks import DetectionModel
 from ultralytics.nn.modules.conv import Conv
 from ultralytics.nn.modules.block import Bottleneck, C3, SPPF
 from torch.nn import Sequential
+from ultralytics import YOLO
+import os
+import glob
+import matplotlib.pyplot as plt
+import matplotlib.image as mpimg
 
+
+# 운영체제별 한글 폰트 설정 #########################################################
+import platform
+import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
+
+os_name = platform.system()
+
+if os_name == "Darwin":  # macOS
+    font_path = "/Library/Fonts/Arial Unicode.ttf"  # 예시 경로
+elif os_name == "Windows":  # Windows
+    font_path = "C:/Windows/Fonts/malgun.ttf"  # 예시 경로
+elif os_name == "Linux":  # Linux
+    font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"  # 예시 경로
+else:
+    font_path = None
+
+if font_path:
+    font_prop = fm.FontProperties(fname=font_path)
+    plt.rcParams["font.family"] = font_prop.get_name()
+    print(f"폰트 설정 완료: {font_prop.get_name()}")
+else:
+    print("지원하지 않는 운영체제입니다.")
+
+################################################################################
 # PyTorch 2.6 이후는 반드시 안전 글로벌 등록!
 torch.serialization.add_safe_globals([
     DetectionModel, 
@@ -127,16 +44,74 @@ torch.serialization.add_safe_globals([
     Sequential
 ])
 
-if __name__ == "__main__":
-    # train_YOLO(img_dir="data/train_images", ann_dir="data/train_labels", device="cuda" if torch.cuda.is_available() else "cpu")
-    from ultralytics import YOLO
-    # model = YOLO('yolov5s.pt')
-    model = YOLO('yolov8n.pt')
+# TODO: 
+
+def train(yaml_dir, batch_size=8, num_epochs=5, iou_threshold=0.5, device="cpu", debug=False):
+    '''
+    YOLO 모델을 학습하는 함수
+    Args:
+    yaml_dir (str): 데이터셋 설정이 저장된 YAML 파일 경로(**절대경로**)
+    iou_threshold (float): IoU 임계값 (0.5, 0.75, 0.95 지원, 기본값 0.5)
+    batch_size (int): 미니배치 크기 (기본값 8)
+    num_epochs (int): 학습 에폭 수 (기본값 5)
+    '''
+    
+    model = YOLO('yolov8n.pt').to(device) 
+
     model.train(
-        data='C:/Users/nihao/Desktop/new_neo/new_neo_project1/data/data.yaml',
-        epochs=5,
+        data=yaml_dir,
+        epochs=num_epochs,
         imgsz=640,
-        batch=8,
+        batch=batch_size,
         patience=10,
-        save=True,
+        save=True,  
+        verbose = debug,   
     )
+
+    # 검증 수행
+    metrics = model.val()
+
+    # 검증 결과 출력
+    if iou_threshold == 0.5:
+        map_score = metrics.box.map50  
+    elif iou_threshold == 0.75:
+        map_score = metrics.box.map75  
+    elif iou_threshold == 0.95:
+        map_score = metrics.box.map95
+    else:
+        map_score = metrics.box.map
+    precision = metrics.box.precision.mean()
+    recall = metrics.box.recall.mean()
+
+    print(f"mAP: {map_score:.4f}, Precision: {precision:.4f}, Recall: {recall:.4f}")
+
+
+    # 훈련중 시각화 
+    train_folders = glob.glob(os.path.join("runs/detect", 'train*'))
+    latest_folder = max(train_folders, key=os.path.getmtime)           # 가장 최근에 수정된 폴더 찾기
+    image_files = glob.glob(os.path.join(latest_folder, '*.jpg'))
+
+    # 이미지 시각화
+
+
+if __name__ == "__main__":
+    # 데이터셋 설정 파일 경로(절대경로)
+    yaml_dir = "/Users/apple/Documents/codeit-Al-Project1/new_neo_project1/data/train_labels/data.yaml"
+
+    # 학습 수행
+    train(yaml_dir, batch_size=8, num_epochs=1, iou_threshold=0.5, device="cpu", debug=False)
+
+
+    # 훈련중 시각화 
+    train_folders = glob.glob(os.path.join("runs/detect", 'train*'))
+    latest_folder = max(train_folders, key=os.path.getmtime)           # 가장 최근에 수정된 폴더 찾기
+    image_files = glob.glob(os.path.join(latest_folder, '*.jpg')) + glob.glob(os.path.join(latest_folder, '*.png')) # jpg와 png 모두 찾기
+
+    # 이미지 시각화
+    for image_file in image_files:
+        img = mpimg.imread(image_file)
+        plt.imshow(img)
+        plt.axis('off') 
+        plt.grid(False)
+        plt.title(os.path.basename(image_file))
+        plt.show()
