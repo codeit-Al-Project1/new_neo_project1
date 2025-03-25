@@ -93,7 +93,7 @@ def test(img_dir, device='cpu', model_path=None, batch_size=8, threshold=0.5, de
                     }
                 )
     
-    return results
+            return results
 
 
 #############################################################################################

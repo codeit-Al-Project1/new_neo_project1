@@ -84,13 +84,13 @@ def get_transforms(mode='train'):
             T.RandomGrayscale(p=0.1),
             T.RandomPerspective(distortion_scale=0.2, p=0.5),
             T.GaussianBlur(kernel_size=(3, 3), sigma=(0.1, 2.0)),
-            T.RandomResizedCrop(size=(512, 512), scale=(0.8, 1.2)),
+            T.RandomResizedCrop(size=(640, 640), scale=(0.8, 1.2)),
             T.ToDtype(dtype=torch.float32, scale=True)
         ])
     elif mode == "val" or mode == "test":
         return T.Compose([
             T.ToImage(),
-            T.Resize((512,512)),
+            T.Resize((640,640)),
             T.ToDtype(torch.float32, scale=True)
         ])
     else:
