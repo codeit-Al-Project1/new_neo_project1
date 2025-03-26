@@ -24,7 +24,28 @@ from tqdm import tqdm
 import argparse
 from ultralytics import YOLO
 import matplotlib.pyplot as plt
+import matplotlib.image as mpimg   # <-- [추가] 이미지 시각화를 위한 모듈
 import glob
+import platform
+import matplotlib.font_manager as fm
+
+# 운영체제별 한글 폰트 설정
+os_name = platform.system()
+if os_name == "Darwin":
+    font_path = "/Library/Fonts/Arial Unicode.ttf"
+elif os_name == "Windows":
+    font_path = "C:/Windows/Fonts/malgun.ttf"
+elif os_name == "Linux":
+    font_path = "/usr/share/fonts/truetype/nanum/NanumGothic.ttf"
+else:
+    font_path = None
+
+if font_path:
+    font_prop = fm.FontProperties(fname=font_path)
+    plt.rcParams["font.family"] = font_prop.get_name()
+    print(f"폰트 설정 완료: {font_prop.get_name()}")
+else:
+    print("지원하지 않는 운영체제입니다.")
 
 
 def enable_weights_only_false():
@@ -55,10 +76,10 @@ def train_YOLO(img_dir, yaml_path, model_variant='n', batch_size=8, num_epochs=1
 
     valid_variants = ['n', 's', 'm', 'l']
 
-    if not isinstance(img_dir, str):
-        raise TypeError("img_dir must be a string")
-    if not isinstance(yaml_path, str):
-        raise TypeError("yaml_path must be a string")
+    if not img_dir or not os.path.exists(img_dir):
+        raise ValueError(f"[ERROR] img_dir 경로가 존재하지 않습니다: {img_dir}")
+    if not yaml_path or not os.path.exists(yaml_path):
+        raise ValueError(f"[ERROR] yaml_path 경로가 존재하지 않습니다: {yaml_path}")
     if not isinstance(batch_size, int) or batch_size <= 0:
         raise ValueError("batch_size must be a positive integer")
     if not isinstance(num_epochs, int) or num_epochs <= 0:
@@ -86,6 +107,7 @@ def train_YOLO(img_dir, yaml_path, model_variant='n', batch_size=8, num_epochs=1
         batch=batch_size,
         lr0=lr,
         weight_decay=weight_decay,
+        patience=patience,
         device=device,
         optimizer=optimizer,
         seed=seed,
@@ -104,6 +126,22 @@ def val_yolo(model_path):
     model = YOLO(model_path)
     val_results = model.val()
     print(f"[INFO] 검증 완료: {model_path}")
+    return val_results.save_dir
+
+
+def visualize(result_dir):
+    if not result_dir or not os.path.exists(result_dir):
+        raise ValueError(f"시각화 경로가 존재하지 않습니다: {result_dir}")
+
+    image_files = glob.glob(os.path.join(result_dir, '*.jpg')) + glob.glob(os.path.join(result_dir, '*.png'))
+    image_files = [f for f in image_files if "confusion_matrix" not in f]
+
+    for image_file in image_files:
+        img = mpimg.imread(image_file)
+        plt.imshow(img)
+        plt.axis('off')
+        plt.title(os.path.basename(image_file))
+        plt.show()
 
 
 def main():
@@ -131,6 +169,10 @@ def main():
         enable_weights_only_false()
     
     if args.mode == 'train':
+        if not args.img_dir:
+            raise ValueError("[ERROR] 학습 모드에서는 --img_dir 인자가 필요합니다.")
+        if not args.yaml_path:
+            raise ValueError("[ERROR] 학습 모드에서는 --yaml_path 인자가 필요합니다.")
         train_YOLO(
             img_dir=args.img_dir,
             yaml_path=args.yaml_path,
@@ -149,7 +191,8 @@ def main():
     elif args.mode == 'val':
         if not args.val_model_path:
             raise ValueError("[ERROR] 검증 모드에서는 --val_model_path 인자를 지정해야 합니다.")
-        val_yolo(args.val_model_path)
+        save_dir = val_yolo(args.val_model_path)
+        visualize(save_dir)
 
 if __name__ == "__main__":
     main()
