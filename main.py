@@ -3,6 +3,7 @@ import torch
 from src.train_frcnn import train
 from src.test_frcnn import test
 from src.utils import visualization
+from src.make_csv import submission_csv
 
 """
 학습 실행
@@ -67,6 +68,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     if args.mode == "train":
+        print("학습을 시작합니다.")
         train(
             img_dir=args.img_dir,
             json_dir=args.json_path,
@@ -82,6 +84,7 @@ def main():
         )
 
     elif args.mode == "test":
+        print("이미지 예측을 시작합니다.")
         results = test(
             img_dir=args.img_dir,
             device=device,
@@ -92,10 +95,14 @@ def main():
         )
 
         if args.visualization:
+            print("시각화 이미지를 페이지 형태로 ./data/results에 저장합니다.")
             visualization(results, 
                           page_size=args.page_size, 
                           page_lim=args.page_lim, 
                           debug=args.debug)
+            # DEBUG = False(default)
+            print("실험 결과를 csv형식으로 저장합니다.")
+            submission_csv(results, submission_file_path='./submission_frcnn.csv', debug=args.debug)
 
 if __name__ == "__main__":
     main()
