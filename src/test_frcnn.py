@@ -7,6 +7,7 @@ import argparse
 import pandas
 from src.data_utils.data_loader import get_loader, get_category_mapping
 from src.model_utils.basic_frcnn import get_fast_rcnn_model
+from src.utils import resize_bbox_to_original
 
 #############################################################################################
 # 테스트 함수
@@ -39,13 +40,13 @@ def test(img_dir, device='cpu', model_path=None, batch_size=8, threshold=0.5, de
 
     # 어노테이션 디렉토리를 기준으로 카테고리 매핑 가져오기
     ANN_DIR = "data/train_annots_modify"
-    name_to_idx, idx_to_name = get_category_mapping(ANN_DIR)
+    category_map = get_category_mapping(ANN_DIR, add_more=True)
 
     # 클래스 개수는 카테고리 길이로 설정
-    num_classes = len(name_to_idx)
+    num_classes = len(category_map['name_to_idx'])
 
     # 모델 가져오기
-    model = get_fast_rcnn_model(num_classes=num_classes + 1)
+    model = get_fast_rcnn_model(num_classes=num_classes)
 
     # 모델 패스 가져오기
     if model_path:
@@ -64,12 +65,14 @@ def test(img_dir, device='cpu', model_path=None, batch_size=8, threshold=0.5, de
         for images, file_names in progress_bar:
             images = [img.to(device) for img in images]
             outputs = model(images)     # boxes, labels, scores
-
+            
             for file_name, output in zip(file_names, outputs):
-                # cpu로 결과값 저장
+                # cpu로 결과값 저장                
                 boxes = output['boxes'].cpu().tolist()
                 labels = output['labels'].cpu().tolist()
                 scores = output['scores'].cpu().tolist()
+
+                boxes = resize_bbox_to_original(boxes, orig_size=(976, 1280))
 
                 # 스코어 필터링(confidence score >= threshold)
                 filtered = [(b, l, s) for b, l, s in zip(boxes, labels, scores) if s >= threshold]
@@ -79,7 +82,7 @@ def test(img_dir, device='cpu', model_path=None, batch_size=8, threshold=0.5, de
                 image_id = os.path.splitext(file_name)[0]   # 확장자 제거
 
                 # 카테고리 이름 매핑
-                category_names = [idx_to_name[label] for label in labels]
+                category_names = [category_map['idx_to_name'][label] for label in labels]
 
                 # 결과값 저장
                 results.append(
@@ -93,7 +96,7 @@ def test(img_dir, device='cpu', model_path=None, batch_size=8, threshold=0.5, de
                     }
                 )
     
-    return results, idx_to_name
+    return results
 
 
 #############################################################################################

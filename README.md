@@ -1,10 +1,33 @@
- # Data Download 실행
- 필요한 Data Download 및 extract 그리고 wrapping과정을 통합한 모듈
- ***NOTE: colab과의 연동을 진행한 vs code에서는 다운로드 진행상황이 보이나, 일반 vs code환경에서의 실행시 진행상황은 보이지 않습니다. (1분에서 5분 소요)***
- ***Kaggle API를 이용한 데이터 다운로드 이므로, Kaggle 인증이 필요합니다. 다운로드를 따로하려면 아래의 커멘드 참조***
- 실행: -- 수정
-  python src/data_utils/data_download.py --download True --extract True
-  
-  다운로드 = False 압축해제 = False --> 압축파일을 가지고있고 모듈을 통해 해제하려면 './data'에 압축파일을 두고 extract만 True로 진행.
-  
-  python src/data_utils/data_download.py --download False --extract False
+# Develop Branch
+
+ 진행상황을 업데이트 한다.
+
+# Data_download 수정 사항
+
+ 기본 실행 방법(다운로드 및 annotation wrapping)
+ - python src/data_utils/data_download.py --download --extract
+
+ 다운로드 제외실행(annotation wrapping 및 json modify)
+ - python src/data_utils/data_download.py
+
+ data는 이미 최신화 된 상태에서 json_modify 만을 실행하려는 경우.
+ - python src/data_utils/data_download.py --json_modify
+
+# Frcnn Test 실행 방법
+
+ python main.py --mode test --img_dir "data/test_images"  --> 기본 실행
+
+ python main.py --mode test --img_dir "data/test_images" --debug --visualization --> 디버그 + 시각화 추가
+
+ python main.py --mode test --img_dir "data/test_images" --test_batch_size 4 --threshold 0.5 --debug --visualization --> 배치 조정, 임계값 조정
+
+ python main.py --mode test --img_dir "data/test_images" --test_batch_size 4 --threshold 0.5 --debug --visualization --page_size 20 --page_lim None(int) --> 시각화 조정
+
+ - model_path: weight & bias 정보가 담긴 .pth 파일이 존재할 경우 경로 지정.
+ - test_batch_size: (default) 4
+ - threshold: (default) 0.5
+ - debug: 입력시 True, 아니면 False
+ - visualization: 입력시 True, 아니면 False
+ - page_size: 저장될 이미지 하나에 포함될 이미지의 개수 (default) 20
+ - page_lim:  샘플링 여부 (default) None --> int 입력값 수정으로 샘플링의 양을 설정
+

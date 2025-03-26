@@ -157,7 +157,7 @@ def json_modify(output_dir, json_folder, img=img, annot=annot):
     json_folder = json 파일들이 저장되어있는 위치 os.walk로 들어가 폴더 내부를 
                   탐사해 리스트 형태로 저장.
     """
-
+    print("json파일을 학습에 적합한 형태로 변환합니다.")
     # 원하는 위치에 폴더 생성
     os.makedirs(output_dir, exist_ok=True)
 
@@ -200,10 +200,13 @@ def json_modify(output_dir, json_folder, img=img, annot=annot):
                 temp_annot = annot.copy()
                 temp_annot["area"] = annotations[j]["area"]
                 temp_annot["bbox"] = annotations[j]["bbox"]
+                if annotations[j]["image_id"] == 772 and annotations[j]["bbox"][0] == 1771:
+                    temp_annot["bbox"][0] = 167
                 temp_annot["category_id"] = annotations[j]["category_id"]
                 temp_annot["image_id"] = annotations[j]["image_id"]
                 temp_annot["annotation_id"] = annotations[j]["id"]
                 drug_ids.add(annotations[j]["category_id"])
+                
                 temp_annotations.append(temp_annot)
 
         # 알약 정보를 리스트로 저장 (단일 알약에 대해서만 적혀있었다면, 현재는 annotation이 포함된 알약의 id를 포함한 리스트)
@@ -232,7 +235,7 @@ def json_modify(output_dir, json_folder, img=img, annot=annot):
         with open(json_file_name, "w", encoding="utf-8") as f:
             json.dump(json_data, f, indent=4, ensure_ascii=False)
 
-    print(f"JSON 파일 저장 완료!")
+    print(f"JSON 변환 파일 저장 완료!")
 
     return
 
@@ -258,8 +261,14 @@ if __name__ == '__main__':
     parser.add_argument('--path', type=str, default="./data", help='Download Path(default: ./data)')
     parser.add_argument('--output_dir', type=str, default="./data/train_annots_modify", help='Destination of json file save')
     parser.add_argument('--json_folder', type=str, default='./data/train_annotations', help='Location of original json files')
-    parser.add_argument('--download', type=bool, default=False, help='Download Preference')
-    parser.add_argument('--extract', type=bool, default=False, help='Extract Preference')
-    args = parser.parse_args()
+    parser.add_argument('--download', action="store_true", help='Download Preference')
+    parser.add_argument('--extract', action="store_true", help='Extract Preference')
 
-    data_setup(args.path, args.output_dir, args.json_folder, args.download, args.extract)
+    # json modify만 실행을 원할경우
+    parser.add_argument('--json_modify', action="store_true", help='Only modification apply to the json folder')
+    args = parser.parse_args()
+    
+    if args.json_modify:
+        json_modify(args.output_dir, args.json_folder)
+    else:
+        data_setup(args.path, args.output_dir, args.json_folder, args.download, args.extract)
