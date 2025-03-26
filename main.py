@@ -10,7 +10,7 @@ from src.utils import visualization
 gpt 추천
 SGD (lr=0.02, momentum=0.9, weight_decay=0.0001) + MultiStepLR (milestones=[8, 11], gamma=0.1) 🚀
 
-1번 실험 mAP = 0.9080
+1번 실험 mAP = 0.9080 (데이터 증강 전)
 python main.py --mode train --backbone resnet50 --batch_size 4 --epochs 30 --optimizer sgd --scheduler plateau --lr 0.001 --weight_decay 0.0005
 
 2번 실험
