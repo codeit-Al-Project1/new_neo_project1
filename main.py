@@ -28,6 +28,10 @@ python main.py --mode test --img_dir "data/test_images"  --> 기본 실행
 python main.py --mode test --img_dir "data/test_images" --debug --visualization --> 디버그 + 시각화 추가
 python main.py --mode test --img_dir "data/test_images" --test_batch_size 4 --threshold 0.5 --debug --visualization --> 배치 조정, 임계값 조정
 python main.py --mode test --img_dir "data/test_images" --test_batch_size 4 --threshold 0.5 --debug --visualization --page_size --page_lim --> 시각화 조정
+
+python main.py --mode test --threshold 0.1 --visualization --model_path 'model_31.pth' --> 추천 실행(임계값 임의 조정 필요)
+
+
 - model_path: weight & bias 정보가 담긴 .pth 파일이 존재할 경우 경로 지정.
 - test_batch_size: (default) 4
 - threshold: (default) 0.5
@@ -70,6 +74,7 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     if args.mode == "train":
+        print("학습을 시작합니다.")
         train(
             img_dir=args.img_dir,
             json_dir=args.json_path,
@@ -85,6 +90,7 @@ def main():
         )
 
     elif args.mode == "test":
+        print("이미지 예측을 시작합니다.")
         results = test(
             img_dir=args.img_dir,
             device=device,
@@ -95,12 +101,16 @@ def main():
         )
 
         if args.visualization:
+            print("=========" * 5)
+            print("시각화 이미지를 페이지 형태로 ./data/results에 저장합니다.")
             visualization(results, 
                           page_size=args.page_size, 
                           page_lim=args.page_lim, 
                           debug=args.debug)
-            submission_csv(results, test_dir=args.img_dir, submission_file_path='./submission.csv', debug=False)
-
+            # DEBUG = False(default)
+            print("=========" * 5)
+            print("실험 결과를 csv형식으로 저장합니다.")
+            submission_csv(results, submission_file_path='./submission_frcnn.csv', debug=args.debug)
 
 if __name__ == "__main__":
     main()

@@ -8,7 +8,7 @@
 
 ■ 터미널 실행 예시:
 -----------------------------------------------
-python src/test_YOLO.py --model_path runs/detect/yolov8n_custom/weights --image_dir ./data/test_images --conf_threshold 0.5 --iou_threshold 0.7 --save_images --verbose --force_load
+python src/test_YOLO.py --model_path runs/detect/yolov8n_custom/weights --image_dir ./data/test_images --conf_threshold 0.5 --iou_threshold 0.7 --save_images --verbose
 -----------------------------------------------
 
 ■ 각 옵션 설명:

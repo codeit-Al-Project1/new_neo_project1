@@ -1,15 +1,12 @@
 import csv
 import numpy as np
-import torch
-import os
-import argparse
+from src.data_utils.data_loader import get_category_mapping
 
-test_dir = './data/test_images'
-
-def submission_csv(predictions, submission_file_path=None, YOLO=True, debug=False):
+def submission_csv(predictions, submission_file_path=None, YOLO=False, debug=False):
     submission_data = []
     annotation_id = 1
-    print(len(predictions))
+
+    idx_to_id = get_category_mapping(ann_dir="data/train_annots_modify", add_more=True, debug=False, return_types=['idx_to_id'])
 
     for i in range(len(predictions)):
         pred = predictions[i]
@@ -32,8 +29,6 @@ def submission_csv(predictions, submission_file_path=None, YOLO=True, debug=Fals
 
         if debug:
             print(f"[{pred['id']}] 예측 결과 - Boxes: {pred['boxes']}, Labels: {pred['labels']}, Scores: {pred['scores']}")
-        print("ID:")
-        print(pred['id'])
         image_id = pred['id']
         bbox = pred['boxes']
         labels = pred['labels']
@@ -48,7 +43,7 @@ def submission_csv(predictions, submission_file_path=None, YOLO=True, debug=Fals
             submission_data.append([
                 annotation_id,                # annotation_id (순차적인 인덱스 넘버)
                 image_id,                     # image_id (이미지 파일명)
-                labels[j],                    # category_id (예측한 클래스)
+                idx_to_id[labels[j]],                    # category_id (예측한 클래스)
                 bbox[j][0],                   # bbox_x
                 bbox[j][1],                   # bbox_y
                 bbox[j][2],                   # bbox_w
@@ -65,5 +60,3 @@ def submission_csv(predictions, submission_file_path=None, YOLO=True, debug=Fals
             writer.writerows(submission_data)
 
     return submission_data
-
-# submission_csv(predictions, args.test_dir, args.submission_file_path, args.debug)
