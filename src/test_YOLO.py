@@ -8,7 +8,7 @@
 
 ■ 터미널 실행 예시:
 -----------------------------------------------
-python src/test_YOLO.py --model_path runs/detect/yolov8n_custom/weights --image_dir ./data/test_images --conf_threshold 0.5 --iou_threshold 0.7 --save_images --verbose --force_load
+python src/test_YOLO.py --model_path runs/detect/yolov8n_custom/weights --image_dir ./data/test_images --conf_threshold 0.5 --iou_threshold 0.7 --save_images --verbose
 -----------------------------------------------
 
 ■ 각 옵션 설명:
@@ -34,11 +34,15 @@ import torch
 import numpy as np
 import pandas as pd
 import os
+import matplotlib.pyplot as plt
+import matplotlib.patches as patches
+import cv2
 import argparse
 from data_utils.data_loader import get_category_mapping
 
 ANN_DIR = "data/train_annots_modify"
 idx_to_id = get_category_mapping(ann_dir=ANN_DIR, debug=True, return_types=['idx_to_id'])
+
 
 def enable_weights_only_false():
     """
@@ -108,7 +112,32 @@ def predict_yolo_and_export_csv(model_path, image_dir, conf_threshold=0.5, iou_t
         raise TypeError(f"[ERROR] model.predict() 반환 타입 오류: list가 아님 ({type(results)})")
     if not results or not hasattr(results[0], 'boxes'):
         raise RuntimeError("[ERROR] 결과가 비어있거나 boxes 속성이 없습니다.")
+    
+    # 처음 5개 결과만 시각화
+    for res in results[:5]:
+        image = cv2.imread(res.path)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        fig, ax = plt.subplots(figsize=(10, 10))
+        ax.imshow(image)
 
+        boxes = res.boxes.xywh.cpu().numpy()
+        class_ids = res.boxes.cls.cpu().numpy().astype(int)
+        scores = res.boxes.conf.cpu().numpy()
+
+        for cls, box, score in zip(class_ids, boxes, scores):
+            x1 = box[0] - (box[2] / 2)
+            y1 = box[1] - (box[3] / 2)
+            w = box[2]
+            h = box[3]
+
+            rect = patches.Rectangle((x1, y1), w, h, linewidth=2, edgecolor='r', facecolor='none')
+            ax.add_patch(rect)
+            ax.text(x1, y1 - 5, f"{res.names[cls]} ({score:.2f})", color="white", fontsize=8, backgroundcolor="red")
+
+        plt.axis('off')
+        plt.show()
+    
+    # csv파일 패스 처리리
     if save_csv_path is None:
         save_dir = getattr(results[0], 'save_dir', None) or os.path.dirname(model_path) or os.getcwd()
         save_csv_path = os.path.join(save_dir, "submission.csv")
@@ -121,7 +150,7 @@ def predict_yolo_and_export_csv(model_path, image_dir, conf_threshold=0.5, iou_t
 
         image_name = os.path.basename(res.path)
         image_id = int(os.path.splitext(image_name)[0])
-        boxes = res.boxes.xywh.cpu().numpy()
+        boxes = res.boxes.xywh.cpu().numpy()        # [x_center, y_center, width, height]
         class_ids = res.boxes.cls.cpu().numpy().astype(int)
         scores = res.boxes.conf.cpu().numpy()
 
@@ -135,11 +164,11 @@ def predict_yolo_and_export_csv(model_path, image_dir, conf_threshold=0.5, iou_t
                 "annotation_id": annotation_id,
                 "image_id": image_id,
                 "category_id": idx_to_id[cls],
-                # float -> 반올림 이후 int
-                "bbox_x": int(round(box[0])),
-                "bbox_y": int(round(box[1])),
-                "bbox_w": int(round(box[2])),
-                "bbox_h": int(round(box[3])),
+                # x_center, y_center -> top-left x, top-left y
+                "bbox_x": box[0] - (box[2] / 2),
+                "bbox_y": box[1] - (box[3] / 2),
+                "bbox_w": box[2],
+                "bbox_h": box[3],
                 "score": score
             })
             annotation_id += 1
@@ -149,6 +178,7 @@ def predict_yolo_and_export_csv(model_path, image_dir, conf_threshold=0.5, iou_t
     print(f"[INFO] 결과가 저장되었습니다: {save_csv_path}")
 
     return df
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
