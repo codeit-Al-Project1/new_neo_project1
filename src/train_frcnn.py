@@ -69,7 +69,7 @@ def train(img_dir: str, json_dir: str, backbone: str = "resnet50", batch_size: i
     assert isinstance(debug, bool), "debug must be a boolean"
 
     # 데이터 로드 및 클래스 매핑
-    name_to_idx, idx_to_name = get_category_mapping(json_dir, add_more=True, debug=debug, return_type=['name_to_idx', 'idx_to_name'])
+    name_to_idx, idx_to_name = get_category_mapping(json_dir, add_more=True, debug=debug, return_types=['name_to_idx', 'idx_to_name'])
     num_classes = len(name_to_idx)
     train_loader, val_loader = get_loader(img_dir, json_dir, batch_size, mode="train", val_ratio=0.2, bbox_format="XYXY", debug=debug)
 
