@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 import torch
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
-
+import torchvision.transforms.v2 as T
 # 옵티마이저 생성 함수
 def get_optimizer(name, model, lr=1e-3, weight_decay=0):
     """
@@ -217,6 +217,7 @@ def visualization(results:list, page_size:int=20, page_lim:int=None, debug:bool=
     - page_lim: 페이지 제한 (예: total_page = 40 일 경우, 모든 페이지를 받는 대신, 제한을 둬서 페이지를 샘플링)
     - debug: 디버그 여부.
     """
+
     total_num = len(results)
     total_pages = np.ceil(total_num / page_size).astype(int)
 
@@ -258,6 +259,7 @@ def visualization(results:list, page_size:int=20, page_lim:int=None, debug:bool=
             scores = results[i]['scores']
             bbox_num = len(boxes)
             path = os.path.join('./data/test_images', file_name)
+            
 
             if debug:
                 print(f"[{i + 1}] Visualize Image: {file_name}, DRUG ID: {drug_id}, BBox Num: {bbox_num}")
@@ -269,6 +271,7 @@ def visualization(results:list, page_size:int=20, page_lim:int=None, debug:bool=
                 continue 
 
             image = cv2.imread(path)
+            ORIGIN_SIZE = image.size()
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
             ax_idx = i - start_idx
@@ -278,6 +281,7 @@ def visualization(results:list, page_size:int=20, page_lim:int=None, debug:bool=
             ax[ax_row, ax_col].imshow(image)
             assert len(boxes) == len(scores), "Bounding Box와 점수의 개수가 맞지 않습니다."
             for name, box, score in zip(drug_names, boxes, scores):
+                box = resize_bbox_to_original(box, ORIGIN_SIZE, resized_size=(640, 640))
                 draw_bbox(ax[ax_row, ax_col], box, f'{name}: {score:.2f}', color='red')
 
             ax[ax_row, ax_col].axis("off")
@@ -294,7 +298,20 @@ def visualization(results:list, page_size:int=20, page_lim:int=None, debug:bool=
 
     print(f"총 {total_pages}페이지 저장 완료!")
 
+def resize_bbox_to_original(bbox_resized, orig_size, resized_size=(640, 640)):
+    H_orig, W_orig = orig_size
+    H_resized, W_resized = resized_size
 
+    # Scaling factors
+    scale_x = W_orig / W_resized
+    scale_y = H_orig / H_resized
+
+    # 원래 사이즈로 변환
+    bbox_orig = bbox_resized.clone()
+    bbox_orig[:, [0, 2]] *= scale_x  # x 좌표
+    bbox_orig[:, [1, 3]] *= scale_y  # y 좌표
+
+    return bbox_orig
 # ============================한글 폰트=================================================
 # Colab 환경에서 실행 중인지 
 import platform
