@@ -271,8 +271,8 @@ def visualization(results:list, page_size:int=20, page_lim:int=None, debug:bool=
                 continue 
 
             image = cv2.imread(path)
+            ORIGIN_SIZE = image.size()
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-            image = T.Resize(640, 640)(image)
 
             ax_idx = i - start_idx
             ax_row = ax_idx // col_img
@@ -281,6 +281,7 @@ def visualization(results:list, page_size:int=20, page_lim:int=None, debug:bool=
             ax[ax_row, ax_col].imshow(image)
             assert len(boxes) == len(scores), "Bounding Box와 점수의 개수가 맞지 않습니다."
             for name, box, score in zip(drug_names, boxes, scores):
+                box = resize_bbox_to_original(box, ORIGIN_SIZE, resized_size=(640, 640))
                 draw_bbox(ax[ax_row, ax_col], box, f'{name}: {score:.2f}', color='red')
 
             ax[ax_row, ax_col].axis("off")
@@ -297,7 +298,20 @@ def visualization(results:list, page_size:int=20, page_lim:int=None, debug:bool=
 
     print(f"총 {total_pages}페이지 저장 완료!")
 
+def resize_bbox_to_original(bbox_resized, orig_size, resized_size=(640, 640)):
+    H_orig, W_orig = orig_size
+    H_resized, W_resized = resized_size
 
+    # Scaling factors
+    scale_x = W_orig / W_resized
+    scale_y = H_orig / H_resized
+
+    # 원래 사이즈로 변환
+    bbox_orig = bbox_resized.clone()
+    bbox_orig[:, [0, 2]] *= scale_x  # x 좌표
+    bbox_orig[:, [1, 3]] *= scale_y  # y 좌표
+
+    return bbox_orig
 # ============================한글 폰트=================================================
 # Colab 환경에서 실행 중인지 
 import platform
