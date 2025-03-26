@@ -36,7 +36,7 @@ from src.model_utils.basic_frcnn import get_fast_rcnn_model
 writer = SummaryWriter("tensorboard_log_dir")
 
 
-def train(img_dir: str, json_dir: str, batch_size: int = 8, num_epochs: int = 5, optimizer_name: str = "sgd", 
+def train(img_dir: str, json_dir: str, backbone: str = "resnet50", batch_size: int = 8, num_epochs: int = 5, optimizer_name: str = "sgd", 
           scheduler_name: str = "plateau", lr: float = 0.001, weight_decay: float = 0.0005, 
           device: str = "cpu", debug: bool = False):
     """
@@ -73,7 +73,7 @@ def train(img_dir: str, json_dir: str, batch_size: int = 8, num_epochs: int = 5,
     train_loader, val_loader = get_loader(img_dir, json_dir, batch_size, mode="train", val_ratio=0.2, bbox_format="XYXY", debug=debug)
 
     # 모델 및 학습 설정
-    model = get_fast_rcnn_model(num_classes).to(device)
+    model = get_fast_rcnn_model(num_classes, backbone=backbone).to(device)
     optimizer = get_optimizer(optimizer_name, model, lr, weight_decay)
     scheduler = get_scheduler(scheduler_name, optimizer, step_size=5, gamma=0.1, T_max=100) # T_max는 CosineAnnealingLR에서만 사용
 
