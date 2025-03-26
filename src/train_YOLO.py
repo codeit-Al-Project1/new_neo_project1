@@ -71,7 +71,21 @@ def train(yaml_dir, batch_size=8, num_epochs=5, iou_threshold=0.5, imgsz=640, de
     ).to(device)
 
     # 검증 수행
-    model.val()
+    result_val = model.val()
+    result_val.ConfusionMatrix
+
+    conf_matrix = result_val.ConfusionMatrix.matrix
+
+    # 클래스 이름 가져오기
+    class_names = result_val.names.values()
+
+    # 혼동 행렬 시각화
+    plt.figure(figsize=(20, 20))  # figsize 설정
+    sns.heatmap(conf_matrix, annot=True, fmt="d", cmap="Blues", xticklabels=class_names, yticklabels=class_names)
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+    plt.title("Confusion Matrix")
+    plt.show()
 
 
 def visualize(model_path=None):
