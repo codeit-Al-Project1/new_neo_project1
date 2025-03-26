@@ -589,8 +589,7 @@ def get_loader(img_dir, ann_dir=None, batch_size=8, mode="train", val_ratio=0.2,
                 self.transform = transform
             def __getitem__(self, idx):
                 img, targets = self.dataset[self.indices[idx]]
-                width = img.shape[1]
-                height = img.shape[2]
+                width, height = img.size
                 if self.transform:
                     img, boxes = self.transform(img, targets['boxes'])
                     boxes[:, [0, 2]] = torch.clamp(boxes[:, [0, 2]], min=0, max=width)
