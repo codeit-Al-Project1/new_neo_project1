@@ -6,12 +6,19 @@ from src.utils import visualization
 
 """
 학습 실행
+
+gpt 추천
+SGD (lr=0.02, momentum=0.9, weight_decay=0.0001) + MultiStepLR (milestones=[8, 11], gamma=0.1) 🚀
+
 1번 실험 mAP = 0.9080
 python main.py --mode train --batch_size 4 --epochs 30 --optimizer sgd --scheduler plateau --lr 0.001 --weight_decay 0.0005
 
 2번 실험
 python main.py --mode train --batch_size 4 --epochs 15 --optimizer adamw --scheduler cosine --lr 0.0001 --weight_decay 0.0001
 
+
+tensorboard --logdir=tensorboard_log_dir
+"models/frcnn_session_2/model_epoch=30 batch_size=4 opt=sgd sch=plateau lr=0_001 wd=0_0005.pth"
 
 예측 실행
 python main.py --mode test --img_dir "data/test_images"  --> 기본 실행
