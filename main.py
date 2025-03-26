@@ -27,7 +27,7 @@ python main.py --mode test --img_dir "data/test_images" --debug --visualization 
 python main.py --mode test --img_dir "data/test_images" --test_batch_size 4 --threshold 0.5 --debug --visualization --> 배치 조정, 임계값 조정
 python main.py --mode test --img_dir "data/test_images" --test_batch_size 4 --threshold 0.5 --debug --visualization --page_size --page_lim --> 시각화 조정
 
-python main.py --mode test --img_dir "data/test_images" --threshold 0.5 --visualization --> 추천 실행(임계값 임의 조정 필요)
+python main.py --mode test --threshold 0.1 --visualization --model_path 'model_31.pth' --> 추천 실행(임계값 임의 조정 필요)
 
 
 - model_path: weight & bias 정보가 담긴 .pth 파일이 존재할 경우 경로 지정.
