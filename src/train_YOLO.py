@@ -109,26 +109,26 @@ def visualize(model_path=None):
 if __name__ == "__main__":
     # 데이터셋 설정 파일 경로(절대경로)
     parser = argparse.ArgumentParser(description="YOLO 모델 학습 스크립트")
-    # parser.add_argument("--yaml_dir", type=str, required=True, help="데이터셋 설정 YAML 파일 (절대)경로")
-    # parser.add_argument("--batch_size", type=int, default=8, help="미니배치 크기")
-    # parser.add_argument("--num_epochs", type=int, default=5, help="학습 에폭 수")
-    # parser.add_argument("--iou_threshold", type=float, default=0.5, help="IoU 임계값")
-    # parser.add_argument("--imgsz", type=int, default=640, help="이미지 크기")
-    # parser.add_argument("--device", type=str, default="cpu", help="학습 장치 (cpu 또는 cuda)")
-    # parser.add_argument("--debug", type=bool, default=False, help="디버깅 모드")
+    parser.add_argument("--yaml_dir", type=str, required=True, help="데이터셋 설정 YAML 파일 (절대)경로")
+    parser.add_argument("--batch_size", type=int, default=8, help="미니배치 크기")
+    parser.add_argument("--num_epochs", type=int, default=5, help="학습 에폭 수")
+    parser.add_argument("--iou_threshold", type=float, default=0.5, help="IoU 임계값")
+    parser.add_argument("--imgsz", type=int, default=640, help="이미지 크기")
+    parser.add_argument("--device", type=str, default="cpu", help="학습 장치 (cpu 또는 cuda)")
+    parser.add_argument("--debug", type=bool, default=False, help="디버깅 모드")
     parser.add_argument("--model_path", type=str, default=None, help="학습된 모델 이름")
 
     args = parser.parse_args()
 
-    # train(
-    #     yaml_dir=args.yaml_dir,
-    #     batch_size=args.batch_size,
-    #     num_epochs=args.num_epochs,
-    #     iou_threshold=args.iou_threshold,
-    #     device=args.device,
-    #     debug=args.debug,
-    #     imgsz=args.imgsz
-    # )
+    train(
+        yaml_dir=args.yaml_dir,
+        batch_size=args.batch_size,
+        num_epochs=args.num_epochs,
+        iou_threshold=args.iou_threshold,
+        device=args.device,
+        debug=args.debug,
+        imgsz=args.imgsz
+    )
 
     visualize(args.model_path)
 
