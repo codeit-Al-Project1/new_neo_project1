@@ -58,6 +58,7 @@ def train(img_dir: str, json_dir: str, backbone: str = "resnet50", batch_size: i
     # 입력값 검증
     assert isinstance(img_dir, str), "img_dir must be a string"
     assert isinstance(json_dir, str), "json_dir must be a string"
+    assert backbone in ["resnet50", "mobilenet_v3_large", "resnext101"], "backbone must be one of ['resnet50', 'mobilenet_v3_large', 'resnext101']"
     assert isinstance(batch_size, int) and batch_size > 0, "batch_size must be a positive integer"
     assert isinstance(num_epochs, int) and num_epochs > 0, "num_epochs must be a positive integer"
     assert isinstance(optimizer_name, str), "optimizer_name must be a string"
@@ -68,7 +69,7 @@ def train(img_dir: str, json_dir: str, backbone: str = "resnet50", batch_size: i
     assert isinstance(debug, bool), "debug must be a boolean"
 
     # 데이터 로드 및 클래스 매핑
-    name_to_idx, idx_to_name = get_category_mapping(json_dir)
+    name_to_idx, idx_to_name = get_category_mapping(json_dir, add_more=True, debug=debug, return_type=['name_to_idx', 'idx_to_name'])
     num_classes = len(name_to_idx)
     train_loader, val_loader = get_loader(img_dir, json_dir, batch_size, mode="train", val_ratio=0.2, bbox_format="XYXY", debug=debug)
 
