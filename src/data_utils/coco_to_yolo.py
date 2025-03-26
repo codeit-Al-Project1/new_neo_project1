@@ -26,7 +26,7 @@ from src.data_utils.data_loader import get_category_mapping
 from sklearn.model_selection import train_test_split
 
 ANN_DIR = "data/train_annots_modify"
-name_to_idx, idx_to_name = get_category_mapping(ANN_DIR)
+name_to_idx, idx_to_name = get_category_mapping(ann_dir=ANN_DIR, debug=True, add_more=False, return_types=['name_to_idx', 'idx_to_name'])
 
 # COCO JSON -> YOLO TXT 변환 함수
 def convert_json_to_txt(json_file, output_dir):
@@ -72,9 +72,7 @@ def convert_json_to_txt(json_file, output_dir):
                     # category_id 매칭 및 YOLO 형식 라벨 작성
                     for category in data['categories']:
                         if ann["category_id"] == category["id"]:
-                            # 0:배경을 제거하기 위해서 -1
-                            category_id = name_to_idx[category['name']] - 1
-                            # 배경 클래스 제외
+                            category_id = name_to_idx[category['name']]
                             if category_id >= 0:
                                 f.write(f"{category_id} {x_center:.6f} {y_center:.6f} {w:.6f} {h:.6f}\n")
 
@@ -296,7 +294,6 @@ def make_yaml(train_dir, val_dir, output_dir, debug=False):
     
     # 클래스 이름 목록 가져오기
     keys = list(idx_to_name.keys())  
-    del idx_to_name[keys[0]], idx_to_name[keys[-1]]   # 마지막 키: ㄴno_class, 첫번째 키: ㄴbackground 삭제
     class_names = [name for name in idx_to_name.values()]
 
     # names 항목을 한 줄 문자열 포맷으로 변환

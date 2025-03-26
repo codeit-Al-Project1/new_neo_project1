@@ -143,7 +143,7 @@ def train_YOLO(img_dir: str,
     # 입력값 검증
     # 매개변수 올바른 형태인지 확인
     valid_variants = ['n', 's', 'm', 'l']
-    yaml_path = r"C:\Users\nihao\Desktop\new_neo\new_neo_project1\data\train_labels\data.yaml"
+    yaml_path = r"C:\Users\user\Desktop\PythonWorkspace\new_neo_project1\data\train_labels\data.yaml"
     assert model_variant in valid_variants, f"model_variant must be one of {valid_variants}"
     assert isinstance(img_dir, str), "img_dir must be a string"
     assert isinstance(ann_dir, str), "ann_dir must be a string"
@@ -197,44 +197,25 @@ def main():
         debug=args.debug
     )
 
+
+def enable_weights_only_false():
+    """
+    PyTorch의 torch.load 함수의 기본 동작을 monkey-patch 하여 
+    weights_only=False 옵션을 강제로 적용하는 함수.
+
+    이 함수는 신뢰할 수 있는 소스의 YOLO 가중치를 로드할 때 
+    Unpickling 오류를 방지하기 위해 사용됩니다.
+    주의: 외부에서 받은 불확실한 가중치 파일에는 보안 위험이 있을 수 있습니다.
+    """
+
+    original_load = torch.load
+    def custom_torch_load(*args, **kwargs):
+        kwargs['weights_only'] = False
+        return original_load(*args, **kwargs)
+    torch.load = custom_torch_load
+    print("[INFO] torch.load monkey-patched: weights_only=False")
+
+
 if __name__ == "__main__":
+    enable_weights_only_false()
     main()
-
-
-########################################################################################################################
-
-# import torch
-# from ultralytics.nn.tasks import DetectionModel
-# from ultralytics.nn.modules.conv import Conv
-# from ultralytics.nn.modules.block import Bottleneck, C3, SPPF
-# from torch.nn import Sequential
-# ## 폰트 오류로 밑에 두 줄 추가
-# import matplotlib.pyplot as plt
-# plt.rcParams['font.family'] = 'malgun gothic'
-
-
-
-# # PyTorch 2.6 이후는 반드시 안전 글로벌 등록!
-# torch.serialization.add_safe_globals([
-#     DetectionModel, 
-#     Conv, 
-#     Bottleneck, 
-#     C3, 
-#     SPPF, 
-#     Sequential
-# ])
-
-# if __name__ == "__main__":
-#     # train_YOLO(img_dir="data/train_images", ann_dir="data/train_labels", device="cuda" if torch.cuda.is_available() else "cpu")
-#     from ultralytics import YOLO
-#     # model = YOLO('yolov5s.pt')
-#     model = YOLO('yolov8n.pt')
-#     model.train(
-#         data='C:/Users/nihao/Desktop/new_neo/new_neo_project1/data/data.yaml',
-#         epochs=10,
-#         imgsz=640,
-#         batch=8,
-#         patience=10,
-#         save=True,
-#         verbose = False
-#     )
