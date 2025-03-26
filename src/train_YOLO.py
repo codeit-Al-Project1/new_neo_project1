@@ -12,7 +12,25 @@ import matplotlib.pyplot as plt
 import glob
 
 
-def train_YOLO(img_dir, yaml_path, model_variant='n', batch_size=8, num_epochs=100, lr=0.001, weight_decay=0.0005, 
+def enable_weights_only_false():
+    """
+    PyTorch의 torch.load 함수의 기본 동작을 monkey-patch 하여 
+    weights_only=False 옵션을 강제로 적용하는 함수.
+
+    이 함수는 신뢰할 수 있는 소스의 YOLO 가중치를 로드할 때 
+    Unpickling 오류를 방지하기 위해 사용됩니다.
+    주의: 외부에서 받은 불확실한 가중치 파일에는 보안 위험이 있을 수 있습니다.
+    """
+
+    original_load = torch.load
+    def custom_torch_load(*args, **kwargs):
+        kwargs['weights_only'] = False
+        return original_load(*args, **kwargs)
+    torch.load = custom_torch_load
+    print("[INFO] torch.load monkey-patched: weights_only=False")
+
+
+def train_yolo(img_dir, yaml_path, model_variant='n', batch_size=8, num_epochs=100, lr=0.001, weight_decay=0.0005, 
                patience=100, device='cpu', optimizer='auto', seed=42, resume=False, debug=False):
     # 절대 경로로 변환
     if not os.path.isabs(img_dir):
@@ -47,7 +65,7 @@ def train_YOLO(img_dir, yaml_path, model_variant='n', batch_size=8, num_epochs=1
     model_path = f'yolov8{model_variant}.pt'
     model = YOLO(model_path)
 
-    results = model.train(
+    model.train(
         data=yaml_path,
         epochs=num_epochs,
         batch=batch_size,
@@ -62,31 +80,21 @@ def train_YOLO(img_dir, yaml_path, model_variant='n', batch_size=8, num_epochs=1
         name=f'yolov8{model_variant}_custom'
     )
 
-    return model, results
+def val_yolo(model_path):
+    if not os.path.isabs(model_path):
+        model_path = os.path.abspath(model_path)
 
-
-def enable_weights_only_false():
-    """
-    PyTorch의 torch.load 함수의 기본 동작을 monkey-patch 하여 
-    weights_only=False 옵션을 강제로 적용하는 함수.
-
-    이 함수는 신뢰할 수 있는 소스의 YOLO 가중치를 로드할 때 
-    Unpickling 오류를 방지하기 위해 사용됩니다.
-    주의: 외부에서 받은 불확실한 가중치 파일에는 보안 위험이 있을 수 있습니다.
-    """
-
-    original_load = torch.load
-    def custom_torch_load(*args, **kwargs):
-        kwargs['weights_only'] = False
-        return original_load(*args, **kwargs)
-    torch.load = custom_torch_load
-    print("[INFO] torch.load monkey-patched: weights_only=False")
+    model = YOLO(model_path)
+    val_results = model.val()
+    print("[INFO] 검증 완료.")
 
 
 def main():
     parser = argparse.ArgumentParser(description='YOLO Model Training Script')
-    parser.add_argument("--img_dir", type=str, required=True, help="Training image directory")
-    parser.add_argument("--yaml_path", type=str, required=True, help="YAML config file path")
+    parser.add_argument('--mode', type=str, choices=['train', 'val'], required=True, help='train 또는 val 선택')
+    parser.add_argument("--img_dir", type=str, help="학습 이미지 경로 (train 모드일 때 필요)")
+    parser.add_argument("--yaml_path", type=str, help="YAML 경로 (train 모드일 때 필요)")
+    parser.add_argument('--val_model_path', type=str, help='검증 시 사용할 best.pt 경로')
     parser.add_argument('--model_variant', type=str, default='n', choices=['n', 's', 'm', 'l'], help='YOLO model variant')
     parser.add_argument('--batch_size', type=int, default=8, help='Batch size')
     parser.add_argument('--num_epochs', type=int, default=100, help='Number of training epochs')
@@ -105,22 +113,28 @@ def main():
     if args.force_load:
         enable_weights_only_false()
 
-    model, results = train_YOLO(
-        img_dir=args.img_dir,
-        yaml_path=args.yaml_path,
-        model_variant=args.model_variant,
-        batch_size=args.batch_size,
-        num_epochs=args.num_epochs,
-        lr=args.lr,
-        weight_decay=args.weight_decay,
-        patience=args.patience,
-        device=args.device,
-        optimizer=args.optimizer,
-        seed=args.seed,
-        resume=args.resume,
-        debug=args.debug
-    )
-
+    if args.mode == 'train':
+        if not args.img_dir or not args.yaml_path:
+            raise ValueError("train 모드에서는 --img_dir 및 --yaml_path가 필요합니다.")
+        train_yolo(
+            img_dir=args.img_dir,
+            yaml_path=args.yaml_path,
+            model_variant=args.model_variant,
+            batch_size=args.batch_size,
+            num_epochs=args.num_epochs,
+            lr=args.lr,
+            weight_decay=args.weight_decay,
+            patience=args.patience,
+            device=args.device,
+            optimizer=args.optimizer,
+            seed=args.seed,
+            resume=args.resume,
+            debug=args.debug
+        )
+    elif args.mode == 'val':
+        if not args.val_model_path:
+            raise ValueError("[ERROR] 검증 모드에서는 --val_model_path 인자를 지정해야 합니다.")
+        val_yolo(args.val_model_path)
 
 if __name__ == "__main__":
     main()
