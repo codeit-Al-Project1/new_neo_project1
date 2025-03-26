@@ -1,7 +1,22 @@
-###################################################################################################################################################
-# 모델 선택을 위한 실행 코드 예제
-# python src/train_YOLO.py --img_dir data\train_labels\train --yaml_path data\train_labels\data.yaml --model_variant n
-###################################################################################################################################################
+#####################################################################################################
+# [모델 학습 실행 방법 예제]
+# python src/train_YOLO.py --mode train --img_dir data/train_labels/train --yaml_path data/train_labels/data.yaml --model_variant n --batch_size 8 --num_epochs 100 --device cpu
+#
+# [모델 검증 실행 방법 예제]
+# python src/train_YOLO.py --mode val --val_model_path runs/detect/yolov8n_custom/weights/best.pt
+#
+# 각 인자 설명:
+# --mode             : 실행 모드 (train 또는 val)
+# --img_dir          : 학습 이미지 경로 (train 모드에서 필요)
+# --yaml_path        : 데이터 yaml 경로 (train 모드에서 필요)
+# --val_model_path   : 검증 시 사용할 best.pt 경로 (val 모드에서 필요)
+# --model_variant    : 사용할 YOLOv8 모델 크기 (n, s, m, l 중 선택)
+# --batch_size       : 배치 크기
+# --num_epochs       : 학습 에폭 수
+# --device           : 학습 및 검증 디바이스 ('cpu' 또는 'cuda')
+# --force_load       : pickle 오류 발생 시 강제 weights_only=False 로 로딩
+#####################################################################################################
+
 import os
 import numpy as np
 import torch
