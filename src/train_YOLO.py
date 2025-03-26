@@ -1,12 +1,6 @@
 ###################################################################################################################################################
 # 모델 선택을 위한 실행 코드 예제
-# python train.py --model_variant s  # YOLOv8s 사용
-# python train.py --model_variant l  # YOLOv8l 사용
-# 자동 최적화 실행 예제
-# python train.py --model_variant n --batch_size 16 --num_epochs 10
-# - lr과 weight_decay를 입력하지 않으면 자동 최적화 진행
-# 최종 실행 예시 !!
-# python train.py --model_variant s --batch_size 16 --num_epochs 20 --lr 0.01 --weight_decay 0.0001
+# python src/train_YOLO.py --img_dir data\train_labels\train --yaml_path data\train_labels\data.yaml --model_variant n
 ###################################################################################################################################################
 import os
 import numpy as np
@@ -19,10 +13,12 @@ import glob
 
 
 def train_YOLO(img_dir, yaml_path, model_variant='n', batch_size=8, num_epochs=100, lr=0.001, weight_decay=0.0005, 
-               patience=100, device='cpu', optimizer=None, seed=42, resume=False, debug=False):
+               patience=100, device='cpu', optimizer='auto', seed=42, resume=False, debug=False):
     # 절대 경로로 변환
-    img_dir = os.path.abspath(img_dir)
-    yaml_path = os.path.abspath(yaml_path)
+    if not os.path.isabs(img_dir):
+        img_dir = os.path.abspath(img_dir)
+    if not os.path.isabs(yaml_path):
+        yaml_path = os.path.abspath(yaml_path)
 
     valid_variants = ['n', 's', 'm', 'l']
 
@@ -98,7 +94,7 @@ def main():
     parser.add_argument('--weight_decay', type=float, default=0.0005, help='Weight decay')
     parser.add_argument('--patience', type=int, default=100, help='Early stopping patience')
     parser.add_argument('--device', type=str, default='cpu', help='Device to train on (cpu or cuda)')
-    parser.add_argument('--optimizer', type=str, default=None, help='Optimizer (if supported)')
+    parser.add_argument('--optimizer', type=str, default='auto', help='Optimizer (if supported)')
     parser.add_argument('--seed', type=int, default=42, help='Random seed')
     parser.add_argument('--resume', action='store_true', help='Resume training from last checkpoint')
     parser.add_argument('--debug', action='store_true', help='Enable debug mode')
