@@ -77,7 +77,7 @@ def get_transforms(mode='train'):
     if mode == 'train':
         return T.Compose([
             T.ToImage(),
-            T.RandomRotation(degrees=(-30, 30)),
+            # T.RandomRotation(degrees=(-30, 30)),
             T.RandomHorizontalFlip(p=0.5),
             T.RandomVerticalFlip(p=0.5),
             T.ColorJitter(brightness=(0.9, 1.1), contrast=(0.9, 1.1), saturation=(0.9, 1.1), hue=(-0.1, 0.1)),

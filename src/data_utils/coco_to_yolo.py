@@ -22,7 +22,7 @@ import argparse
 import shutil
 import yaml
 from tqdm import tqdm
-from src.data_utils.data_loader import get_category_mapping
+from data_loader import get_category_mapping
 from sklearn.model_selection import train_test_split
 
 ANN_DIR = "data/train_annots_modify"

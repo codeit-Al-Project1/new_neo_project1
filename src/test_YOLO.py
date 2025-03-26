@@ -35,7 +35,7 @@ import numpy as np
 import pandas as pd
 import os
 import argparse
-from src.data_utils.data_loader import get_category_mapping
+from data_utils.data_loader import get_category_mapping
 
 ANN_DIR = "data/train_annots_modify"
 idx_to_id = get_category_mapping(ann_dir=ANN_DIR, debug=True, return_types=['idx_to_id'])

@@ -110,13 +110,13 @@
 ## - 상대경로 입력해도 절대경로로 바꿀 수 있게
 ###################################################################################################################################################
 # 모델 선택을 위한 실행 코드 예제
-# python train.py --model_variant s  # YOLOv8s 사용
-# python train.py --model_variant l  # YOLOv8l 사용
+# python src/train_YOLO.py --model_variant s  # YOLOv8s 사용
+# python src/train_YOLO.py --model_variant l  # YOLOv8l 사용
 # 자동 최적화 실행 예제
-# python train.py --model_variant n --batch_size 16 --num_epochs 10
+# python src/train_YOLO.py --model_variant n --batch_size 16 --num_epochs 10
 # - lr과 weight_decay를 입력하지 않으면 자동 최적화 진행
 # 최종 실행 예시 !!
-# python train.py --model_variant s --batch_size 16 --num_epochs 20 --lr 0.01 --weight_decay 0.0001
+# python src/train_YOLO.py --model_variant s --batch_size 16 --num_epochs 20 --lr 0.01 --weight_decay 0.0001
 ###################################################################################################################################################
 import os
 import numpy as np
@@ -143,7 +143,7 @@ def train_YOLO(img_dir: str,
     # 입력값 검증
     # 매개변수 올바른 형태인지 확인
     valid_variants = ['n', 's', 'm', 'l']
-    yaml_path = r"C:\Users\user\Desktop\PythonWorkspace\new_neo_project1\data\train_labels\data.yaml"
+    yaml_path = r"C:\Users\jeaui\codeit\codeit-Al-Project\new_neo_project1\data\train_labels\data.yaml"
     assert model_variant in valid_variants, f"model_variant must be one of {valid_variants}"
     assert isinstance(img_dir, str), "img_dir must be a string"
     assert isinstance(ann_dir, str), "ann_dir must be a string"

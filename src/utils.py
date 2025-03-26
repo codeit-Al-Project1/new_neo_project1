@@ -163,10 +163,6 @@ def calculate_map(predictions, targets, num_classes, iou_threshold=0.5):
     mean_precision = np.mean([np.mean(p) if len(p) > 0 else 0 for p in precisions]) if len(precisions) > 0 else 0
     mean_recall = np.mean([np.mean(r) if len(r) > 0 else 0 for r in recalls]) if num_gt_boxes > 0 else 0
 
-    # map_score = np.mean(ap_values)
-    # mean_precision = np.mean([np.mean(p) for p in precisions if len(p) > 0]) if len(precisions) > 0 else 0
-    # mean_recall = np.mean([np.mean(r) for r in recalls if len(r) > 0]) if len(recalls) > 0 else 0
-
     return map_score, mean_precision, mean_recall
 
 # 시각화 함수
@@ -299,7 +295,7 @@ def visualization(results:list, page_size:int=20, page_lim:int=None, debug:bool=
     print(f"총 {total_pages}페이지 저장 완료!")
 
 def resize_bbox_to_original(bbox_resized, orig_size, resized_size=(640, 640)):
-    H_orig, W_orig = orig_size
+    W_orig, H_orig = orig_size
     H_resized, W_resized = resized_size
 
     # Scaling factors
