@@ -90,7 +90,7 @@ def get_transforms(mode='train'):
     elif mode == "val" or mode == "test":
         return T.Compose([
             T.ToImage(),
-            T.Resize((640,640)),
+            T.Resize((640, 640)),
             T.ToDtype(torch.float32, scale=True)
         ])
     else:
@@ -185,7 +185,7 @@ class PillDataset(Dataset):
         Attributes:
             image_dir (str): 이미지 파일이 저장된 디렉토리 경로  
             ann_dir (str, optional): 어노테이션 JSON 파일들이 저장된 디렉토리 경로 (train/val 모드에서 필요)  
-            mode (str): 'train', 'val', 'test' 중 하나로 데이터셋의 동작 모드를 결정  
+            mode (str): 'train', 'val', 'test' 중 하나로 데이터셋의 동작 모드를 결정  `
             category_mapping (dict): 카테고리 이름과 인덱스 매핑 정보  
             transform (callable, optional): 이미지 및 bounding box에 적용할 변환 함수  
             debug (bool): True일 경우 불일치 및 파일 정보 등을 출력하여 디버깅 용도로 활용
@@ -566,8 +566,12 @@ def get_loader(img_dir, ann_dir=None, batch_size=8, mode="train", val_ratio=0.2,
                 self.transform = transform
             def __getitem__(self, idx):
                 img, targets = self.dataset[self.indices[idx]]
+                width = img.shape[1]
+                height = img.shape[2]
                 if self.transform:
                     img, boxes = self.transform(img, targets['boxes'])
+                    boxes[:, [0, 2]] = torch.clamp(boxes[:, [0, 2]], min=0, max=width)
+                    boxes[:, [1, 3]] = torch.clamp(boxes[:, [1, 3]], min=0, max=height)
                 targets['boxes'] = boxes
                 return img, targets
             def __len__(self):
