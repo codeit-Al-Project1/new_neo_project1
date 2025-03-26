@@ -8,7 +8,7 @@
 
 ■ 터미널 실행 예시:
 -----------------------------------------------
-python src/test_YOLO.py --model_path runs/detect/train3/weights/best.pt --image_dir ./data/test_images --conf_threshold 0.5 --iou_threshold 0.7 --save_images --verbose --force_load
+python src/test_YOLO.py --model_path runs/detect/yolov8n_custom/weights --image_dir ./data/test_images --conf_threshold 0.5 --iou_threshold 0.7 --save_images --verbose --force_load
 -----------------------------------------------
 
 ■ 각 옵션 설명:
@@ -35,6 +35,10 @@ import numpy as np
 import pandas as pd
 import os
 import argparse
+from src.data_utils.data_loader import get_category_mapping
+
+ANN_DIR = "data/train_annots_modify"
+idx_to_id = get_category_mapping(ann_dir=ANN_DIR, debug=True, return_types=['idx_to_id'])
 
 def enable_weights_only_false():
     """
@@ -62,7 +66,7 @@ def predict_yolo_and_export_csv(model_path, image_dir, conf_threshold=0.5, iou_t
     Args:
         model_path (str): 학습된 YOLO 모델 가중치 경로 (예: 'best.pt')
         image_dir (str): 테스트 이미지 디렉토리 경로
-        conf_threshold (float): confidence threshold (기본 0.25)
+        conf_threshold (float): confidence threshold (기본 0.5)
         iou_threshold (float): NMS IOU threshold (기본 0.7)
         save_csv_path (str or None): 결과 CSV 저장 경로 (None이면 자동 지정)
         device (str or None): 강제 디바이스 선택 ('cpu' 또는 'cuda')
@@ -130,7 +134,7 @@ def predict_yolo_and_export_csv(model_path, image_dir, conf_threshold=0.5, iou_t
             submission.append({
                 "annotation_id": annotation_id,
                 "image_id": image_id,
-                "category_id": cls,
+                "category_id": idx_to_id[cls],
                 # float -> 반올림 이후 int
                 "bbox_x": int(round(box[0])),
                 "bbox_y": int(round(box[1])),
