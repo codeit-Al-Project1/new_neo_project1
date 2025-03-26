@@ -76,15 +76,21 @@ def get_transforms(mode='train'):
 
     if mode == 'train':
         return T.Compose([
-            T.ToImage(), # PIL.Image → torchvision TVTensor (Image) 자동 변환
-            T.RandomHorizontalFlip(),   # 수평 뒤집기
-            T.RandomVerticalFlip(),     # 수직 뒤집기
-            T.ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue=0.1),   # 밝기/대비/채도/색조 조절 (약간의 랜덤 변형)
-            T.ToDtype(torch.float32, scale=True)  # 0 ~ 1 스케일링
+            T.ToImage(),
+            T.RandomRotation(degrees=(-30, 30)),
+            T.RandomHorizontalFlip(p=0.5),
+            T.RandomVerticalFlip(p=0.5),
+            T.ColorJitter(brightness=(0.9, 1.1), contrast=(0.9, 1.1), saturation=(0.9, 1.1), hue=(-0.1, 0.1)),
+            T.RandomGrayscale(p=0.1),
+            T.RandomPerspective(distortion_scale=0.2, p=0.5),
+            T.GaussianBlur(kernel_size=(3, 3), sigma=(0.1, 2.0)),
+            T.RandomResizedCrop(size=(640, 640), scale=(0.8, 1.2)),
+            T.ToDtype(dtype=torch.float32, scale=True)
         ])
     elif mode == "val" or mode == "test":
         return T.Compose([
             T.ToImage(),
+            T.Resize((640,640)),
             T.ToDtype(torch.float32, scale=True)
         ])
     else:
@@ -342,7 +348,10 @@ class PillDataset(Dataset):
 
             # 트랜스폼 적용
             if self.transform:
-                img, bboxes_tensor = self.transform(img, bboxes_tensor)
+                sample = {"image": img, "bbox": bboxes_tensor}
+                sample = self.transform(sample)
+                img = sample["image"]
+                bboxes_tensor = sample["bbox"]
 
             # COCODateset 기준 + 알약 이름 추가
             targets = {

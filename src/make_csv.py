@@ -6,50 +6,35 @@ import argparse
 
 test_dir = './data/test_images'
 
-def submission_csv(predictions, test_dir, submission_file_path=None, YOLO=True, debug=False):
-    # 테스트 이미지 파일 경로 가져오기 및 정렬
-    test_dir = sorted(
-        [os.path.join(test_dir, f) for f in os.listdir(test_dir) if f.endswith('.png')],
-        key=lambda x: int(os.path.splitext(os.path.basename(x))[0])  # 파일명에서 숫자만 추출 후 정렬
-    )
-
-    if debug:
-        print("테스트 이미지 경로 리스트:", test_dir)
-
+def submission_csv(predictions, submission_file_path=None, YOLO=True, debug=False):
     submission_data = []
     annotation_id = 1
-    num_files = len(test_dir)
-    num_preds = len(predictions)
+    print(len(predictions))
 
-    if num_files != num_preds:
-        print(f"Warning: 테스트 이미지 수({num_files})와 예측 결과 수({num_preds})가 일치하지 않습니다.")
-        
-    for i, file_path in enumerate(test_dir):
-        image_id = os.path.splitext(os.path.basename(file_path))[0]  # 파일명에서 확장자 제거
-
-        if predictions is None or i >= num_preds:
-            print(f"Prediction이 없습니다: {image_id}")
-            continue
-
+    for i in range(len(predictions)):
         pred = predictions[i]
 
         # 예측 결과가 딕셔너리인 경우 처리
         if isinstance(pred['category_id'], dict):
             pred = {
+                'id': np.array(list(pred.get('image_id', {}).values()), dtype=np.int32),
                 'boxes': np.array(list(pred.get('boxes', {}).values()), dtype=np.float32),
                 'labels': np.array(list(pred.get('category_id', {}).values()), dtype=np.int32),
                 'scores': np.array(list(pred.get('scores', {}).values()), dtype=np.float32)
             }
         else:
             pred = {
+                'id': np.array(pred.get('image_id', []), dtype=np.int32),
                 'boxes': np.array(pred.get('boxes', []), dtype=np.float32),
                 'labels': np.array(pred.get('category_id', []), dtype=np.int32),
                 'scores': np.array(pred.get('scores', []), dtype=np.float32)
             }
 
         if debug:
-            print(f"[{image_id}] 예측 결과 - Boxes: {pred['boxes']}, Labels: {pred['labels']}, Scores: {pred['scores']}")
-
+            print(f"[{pred['id']}] 예측 결과 - Boxes: {pred['boxes']}, Labels: {pred['labels']}, Scores: {pred['scores']}")
+        print("ID:")
+        print(pred['id'])
+        image_id = pred['id']
         bbox = pred['boxes']
         labels = pred['labels']
         scores = pred['scores']

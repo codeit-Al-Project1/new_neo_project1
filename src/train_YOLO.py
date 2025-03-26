@@ -1,9 +1,3 @@
-# #########################################################################
-# # git clone https://github.com/ultralytics/yolov5.git
-# # cd yolov5
-# # pip install -r requirements.txt
-# #########################################################################
-
 # import torch
 # from tqdm import tqdm
 # import os
@@ -111,35 +105,136 @@
 #     print(f"모델 저장 완료: {save_path}")
 
 
-import torch
-from ultralytics.nn.tasks import DetectionModel
-from ultralytics.nn.modules.conv import Conv
-from ultralytics.nn.modules.block import Bottleneck, C3, SPPF
-from torch.nn import Sequential
-## 폰트 오류로 밑에 두 줄 추가
-import matplotlib.pyplot as plt
-plt.rcParams['font.family'] = 'malgun gothic'
 
-# PyTorch 2.6 이후는 반드시 안전 글로벌 등록!
-torch.serialization.add_safe_globals([
-    DetectionModel, 
-    Conv, 
-    Bottleneck, 
-    C3, 
-    SPPF, 
-    Sequential
-])
+## TODOLIST
+## - 상대경로 입력해도 절대경로로 바꿀 수 있게
+###################################################################################################################################################
+# 모델 선택을 위한 실행 코드 예제
+# python train.py --model_variant s  # YOLOv8s 사용
+# python train.py --model_variant l  # YOLOv8l 사용
+# 자동 최적화 실행 예제
+# python train.py --model_variant n --batch_size 16 --num_epochs 10
+# - lr과 weight_decay를 입력하지 않으면 자동 최적화 진행
+# 최종 실행 예시 !!
+# python train.py --model_variant s --batch_size 16 --num_epochs 20 --lr 0.01 --weight_decay 0.0001
+###################################################################################################################################################
+import os
+import numpy as np
+import torch
+from tqdm import tqdm
+import argparse
+from ultralytics import YOLO
+import matplotlib.pyplot as plt
+
+
+def train_YOLO(img_dir: str,
+               ann_dir: str,
+               model_variant: str = 'n',
+               batch_size: int = 8,
+               num_epochs: int = 5,
+               lr: float = 0.001,
+               weight_decay: float = 0.0005,
+               debug: bool = False
+               ):
+    """
+    YOLO 모델을 학습하는 함수
+    """
+
+    # 입력값 검증
+    # 매개변수 올바른 형태인지 확인
+    valid_variants = ['n', 's', 'm', 'l']
+    yaml_path = r"C:\Users\nihao\Desktop\new_neo\new_neo_project1\data\train_labels\data.yaml"
+    assert model_variant in valid_variants, f"model_variant must be one of {valid_variants}"
+    assert isinstance(img_dir, str), "img_dir must be a string"
+    assert isinstance(ann_dir, str), "ann_dir must be a string"
+    assert isinstance(yaml_path, str), "yaml_path must be a string"
+    assert isinstance(batch_size, int) and batch_size > 0, "batch_size must be a positive integer"
+    assert isinstance(num_epochs, int) and num_epochs > 0, "num_epochs must be a positive integer"
+    assert isinstance(lr, float) and lr > 0, "lr must be a positive float"
+    assert isinstance(weight_decay, float) and weight_decay >= 0, "weight_decay must be a non-negative float"
+    assert isinstance(debug, bool), "debug must be a boolean"
+
+    # YOLO 모델 로드
+    model_path = f'yolov8{model_variant}.pt'
+    model = YOLO(model_path)
+
+    # 모델 학습
+    results = model.train(
+        data=yaml_path,          # YAML 파일 경로
+        epochs=num_epochs,        # 학습 에폭 수
+        batch=batch_size,         # 배치 크기
+        lr0=lr if lr else None,  # 값이 없으면 YOLO가 자동으로 최적값 찾음
+        weight_decay=weight_decay if weight_decay else None,  # 자동 최적화 가중치 감쇠
+        verbose=not debug,        # 디버그 모드에 따른 출력 설정
+        save_period=1,            # 모델 저장 주기
+        project='runs/detect',     # 결과 저장 프로젝트 디렉토리
+        name=f'yolov8{model_variant}_custom'  # 실행 이름 바꾸기 
+    )
+
+    return model, results
+def main():
+    parser = argparse.ArgumentParser(description='YOLO Model Training Script')
+    parser.add_argument("--img_dir", type=str, required=False, default=r"C:\Users\nihao\Desktop\new_neo\new_neo_project1\data\train_labels\train")
+    parser.add_argument("--ann_dir", type=str, required=False, default=r"C:\Users\nihao\Desktop\new_neo\new_neo_project1\data\train_labels\train")
+    parser.add_argument("--yaml_path", type=str, required=False, default=r"C:\Users\nihao\Desktop\new_neo\new_neo_project1\data\train_labels\data.yaml")
+    parser.add_argument('--model_variant', type=str, default='n', choices=['n', 's', 'm', 'l'], help='YOLO model variant')
+    parser.add_argument('--batch_size', type=int, default=8, help='Batch size')
+    parser.add_argument('--num_epochs', type=int, default=5, help='Number of training epochs')
+    parser.add_argument('--lr', type=float, default=0.0005, help='Learning rate')
+    parser.add_argument('--weight_decay', type=float, default=0.0005, help='Weight decay')
+    parser.add_argument('--debug', action='store_true', help='Enable debug mode')
+
+    args = parser.parse_args()
+
+    model, results = train_YOLO(
+        img_dir=args.img_dir,
+        ann_dir=args.ann_dir,
+        model_variant=args.model_variant,
+        batch_size=args.batch_size,
+        num_epochs=args.num_epochs,
+        lr=args.lr,
+        weight_decay=args.weight_decay,
+        debug=args.debug
+    )
 
 if __name__ == "__main__":
-    # train_YOLO(img_dir="data/train_images", ann_dir="data/train_labels", device="cuda" if torch.cuda.is_available() else "cpu")
-    from ultralytics import YOLO
-    # model = YOLO('yolov5s.pt')
-    model = YOLO('yolov8n.pt')
-    model.train(
-        data='C:/Users/nihao/Desktop/new_neo/new_neo_project1/data/data.yaml',
-        epochs=1,
-        imgsz=640,
-        batch=8,
-        patience=10,
-        save=True,
-    )
+    main()
+
+
+########################################################################################################################
+
+# import torch
+# from ultralytics.nn.tasks import DetectionModel
+# from ultralytics.nn.modules.conv import Conv
+# from ultralytics.nn.modules.block import Bottleneck, C3, SPPF
+# from torch.nn import Sequential
+# ## 폰트 오류로 밑에 두 줄 추가
+# import matplotlib.pyplot as plt
+# plt.rcParams['font.family'] = 'malgun gothic'
+
+
+
+# # PyTorch 2.6 이후는 반드시 안전 글로벌 등록!
+# torch.serialization.add_safe_globals([
+#     DetectionModel, 
+#     Conv, 
+#     Bottleneck, 
+#     C3, 
+#     SPPF, 
+#     Sequential
+# ])
+
+# if __name__ == "__main__":
+#     # train_YOLO(img_dir="data/train_images", ann_dir="data/train_labels", device="cuda" if torch.cuda.is_available() else "cpu")
+#     from ultralytics import YOLO
+#     # model = YOLO('yolov5s.pt')
+#     model = YOLO('yolov8n.pt')
+#     model.train(
+#         data='C:/Users/nihao/Desktop/new_neo/new_neo_project1/data/data.yaml',
+#         epochs=10,
+#         imgsz=640,
+#         batch=8,
+#         patience=10,
+#         save=True,
+#         verbose = False
+#     )
