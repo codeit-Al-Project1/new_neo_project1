@@ -36,7 +36,7 @@ from src.model_utils.basic_frcnn import get_fast_rcnn_model
 writer = SummaryWriter("tensorboard_log_dir")
 
 
-def train(img_dir: str, json_dir: str, batch_size: int = 8, num_epochs: int = 5, optimizer_name: str = "sgd", 
+def train(img_dir: str, json_dir: str, backbone: str = "resnet50", batch_size: int = 8, num_epochs: int = 5, optimizer_name: str = "sgd", 
           scheduler_name: str = "plateau", lr: float = 0.001, weight_decay: float = 0.0005, 
           device: str = "cpu", debug: bool = False):
     """
@@ -58,6 +58,7 @@ def train(img_dir: str, json_dir: str, batch_size: int = 8, num_epochs: int = 5,
     # 입력값 검증
     assert isinstance(img_dir, str), "img_dir must be a string"
     assert isinstance(json_dir, str), "json_dir must be a string"
+    assert backbone in ["resnet50", "mobilenet_v3_large", "resnext101"], "backbone must be one of ['resnet50', 'mobilenet_v3_large', 'resnext101']"
     assert isinstance(batch_size, int) and batch_size > 0, "batch_size must be a positive integer"
     assert isinstance(num_epochs, int) and num_epochs > 0, "num_epochs must be a positive integer"
     assert isinstance(optimizer_name, str), "optimizer_name must be a string"
@@ -68,12 +69,12 @@ def train(img_dir: str, json_dir: str, batch_size: int = 8, num_epochs: int = 5,
     assert isinstance(debug, bool), "debug must be a boolean"
 
     # 데이터 로드 및 클래스 매핑
-    name_to_idx, idx_to_name = get_category_mapping(json_dir)
+    name_to_idx, idx_to_name = get_category_mapping(json_dir, add_more=True, debug=debug, return_types=['name_to_idx', 'idx_to_name'])
     num_classes = len(name_to_idx)
     train_loader, val_loader = get_loader(img_dir, json_dir, batch_size, mode="train", val_ratio=0.2, bbox_format="XYXY", debug=debug)
 
     # 모델 및 학습 설정
-    model = get_fast_rcnn_model(num_classes).to(device)
+    model = get_fast_rcnn_model(num_classes, backbone=backbone).to(device)
     optimizer = get_optimizer(optimizer_name, model, lr, weight_decay)
     scheduler = get_scheduler(scheduler_name, optimizer, step_size=5, gamma=0.1, T_max=100) # T_max는 CosineAnnealingLR에서만 사용
 

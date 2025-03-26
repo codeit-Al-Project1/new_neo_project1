@@ -4,12 +4,33 @@ import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
 from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights
+from torchvision.models.detection import FasterRCNN
+from torchvision.models.detection.rpn import AnchorGenerator
+from torchvision.models.detection.faster_rcnn import FasterRCNN_ResNet50_FPN_Weights
 
-def get_fast_rcnn_model(num_classes):
-    model = torchvision.models.detection.fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT)
+def get_fast_rcnn_model(num_classes, backbone="resnet50"):
+    # 사용할 백본 선택
+    if backbone == "resnet50":
+        model = torchvision.models.detection.fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT)
+        in_features = model.roi_heads.box_predictor.cls_score.in_features
+    
+    elif backbone == "mobilenet_v3_large":
+        backbone_model = torchvision.models.mobilenet_v3_large(weights="IMAGENET1K_V1").features
+        backbone_model.out_channels = 960  # MobileNetV3의 출력 채널
+        anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),), aspect_ratios=((0.5, 1.0, 2.0),) * 5)
+        model = FasterRCNN(backbone_model, num_classes=num_classes, rpn_anchor_generator=anchor_generator)
+        in_features = model.roi_heads.box_predictor.cls_score.in_features
+    
+    elif backbone == "resnext101":
+        backbone_model = torchvision.models.resnext101_32x8d(weights="IMAGENET1K_V1")
+        backbone_model = torchvision.models.detection.backbone_utils.resnet_fpn_backbone("resnext101_32x8d", pretrained=True)
+        model = FasterRCNN(backbone_model, num_classes=num_classes)
+        in_features = model.roi_heads.box_predictor.cls_score.in_features
 
-    # 기존 분류 헤드 수정
-    in_features = model.roi_heads.box_predictor.cls_score.in_features
+    else:
+        raise ValueError(f"Unsupported backbone: {backbone}")
+
+    # 분류 헤드 수정
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
     return model
