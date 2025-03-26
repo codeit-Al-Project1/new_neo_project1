@@ -71,15 +71,9 @@ def get_transforms(mode='train'):
     Returns:
         torchvision.transforms.v2.Compose: 변환 함수
     """
-<<<<<<< HEAD
-    ################################################################################################################################
-    # 리사이즈 크기 설정해야할수도?
-    ################################################################################################################################
-=======
 
     # TODO: 리사이즈 크기 지정 필요 여부 검토 (현재 자동 처리)
 
->>>>>>> develop
     if mode == 'train':
         return T.Compose([
             T.ToImage(),
@@ -673,11 +667,7 @@ def get_loader(img_dir, ann_dir=None, batch_size=8, mode="train", val_ratio=0.2,
         raise ValueError(f"Invalid mode: {mode}. Choose either 'train' or 'test'.")
 
 ####################################################################################################
-<<<<<<< HEAD
-# 5. 메인 시작    
-=======
 # 5. 메인 시작
->>>>>>> develop
 if __name__ == "__main__":
     # argparse 시작
     parser = argparse.ArgumentParser(description="PillDataset DataLoader Debug Runner")
@@ -686,27 +676,12 @@ if __name__ == "__main__":
     parser.add_argument('--debug', action='store_true', help="디버깅 모드 여부")
     parser.add_argument('--val_ratio', type=float, default=0.2, help="검증 데이터셋 비율 (0 ~ 1)")
     parser.add_argument('--seed', type=int, default=42, help="랜덤 시드 (재현성 보장)")
-<<<<<<< HEAD
-=======
-
->>>>>>> develop
     args = parser.parse_args()
 
     TRAIN_ROOT = "data/train_images"
     TRAIN_ANN_DIR = "data/train_annots_modify"
     TEST_ROOT = "data/test_images"
 
-<<<<<<< HEAD
-#     # 선택한 모드에 맞춰 로더 실행 및 디버깅 테스트
-#     if args.mode in ['train', 'val']:
-#         loader = get_loader(TRAIN_ROOT, TRAIN_ANN_DIR, batch_size=args.batch_size, mode=args.mode, val_ratio=args.val_ratio, debug=args.debug, seed=args.seed)
-#         print(f"{args.mode} loader 생성 완료.")
-#     elif args.mode == 'test':
-#         loader = get_loader(TEST_ROOT, None, batch_size=args.batch_size, mode=args.mode, debug=args.debug)
-#         print("test loader 생성 완료.")
-#     else:
-#         raise ValueError("잘못된 mode 값입니다. 'train', 'val', 'test' 중 하나를 입력하세요.")
-=======
     # 선택한 모드에 맞춰 로더 실행 및 디버깅 테스트
     if args.mode == 'train':
         train_loader, val_loader = get_loader(TRAIN_ROOT, TRAIN_ANN_DIR, batch_size=args.batch_size, mode='train', val_ratio=args.val_ratio, debug=args.debug, seed=args.seed)
@@ -729,4 +704,3 @@ if __name__ == "__main__":
     if args.debug:
         print("⚠ 디버깅 모드 활성화: 데이터 통계 및 배치 정보 출력")
     print("======================================")
->>>>>>> develop

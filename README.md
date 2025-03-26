@@ -1,7 +1,3 @@
-# Develop Branch
-
- 진행상황을 업데이트 한다.
-
 # Data_download 수정 사항
 
  기본 실행 방법(다운로드 및 annotation wrapping)
