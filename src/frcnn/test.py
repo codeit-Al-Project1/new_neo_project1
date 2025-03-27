@@ -17,7 +17,7 @@ from src.frcnn.utils import resize_bbox_to_original
 
 #############################################################################################
 # 테스트 함수
-def test(img_dir, device='cpu', model_path=None, batch_size=8, threshold=0.5, debug=False):
+def test(img_dir, device='cpu', model_path=None, backbone='mobilenet_v3_large', batch_size=8, threshold=0.5, debug=False):
     """
     테스트 함수 (test)
 
@@ -52,7 +52,7 @@ def test(img_dir, device='cpu', model_path=None, batch_size=8, threshold=0.5, de
     num_classes = len(category_map['name_to_idx'])
 
     # 모델 가져오기
-    model = get_fast_rcnn_model(num_classes=num_classes)
+    model = get_fast_rcnn_model(num_classes=num_classes, backbone=backbone, focal=True)
 
     # 모델 패스 가져오기
     if model_path:
