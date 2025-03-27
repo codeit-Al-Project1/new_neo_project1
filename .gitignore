@@ -37,6 +37,7 @@ runs/*
 pj1/
 
 # 욜로 실행시 나오는 웨이트 .pt 무시
+yolo11n.pt
 yolov8n.pt
 yolov8s.pt
 yolov8m.pt
