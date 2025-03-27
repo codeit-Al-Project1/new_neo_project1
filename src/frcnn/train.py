@@ -25,7 +25,7 @@ from torch.utils.tensorboard import SummaryWriter
 import torchvision.utils as vutils
 
 # 내부 모듈
-from src.frcnn.utils import get_optimizer, get_scheduler, calculate_map
+from src.frcnn.utils import get_optimizer, get_scheduler, compute_iou, compute_precision_recall, compute_ap
 from src.data_utils.data_loader import get_loader
 from src.utils import get_category_mapping
 from src.model_utils.basic_frcnn import (
