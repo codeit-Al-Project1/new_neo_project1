@@ -1,13 +1,19 @@
+# 표준 라이브러리
+import os
+import json
+import argparse
+
+# 서드파티 라이브러리
 import torch
 import torchvision
-from tqdm import tqdm
-import json
-import os
-import argparse
 import pandas
-from src.data_utils.data_loader import get_loader, get_category_mapping
+from tqdm import tqdm
+
+# 내부 모듈
+from src.data_utils.data_loader import get_loader
+from src.utils import get_category_mapping
 from src.model_utils.basic_frcnn import get_fast_rcnn_model
-from src.utils import resize_bbox_to_original
+from src.frcnn.utils import resize_bbox_to_original
 
 #############################################################################################
 # 테스트 함수

@@ -1,6 +1,6 @@
 import csv
 import numpy as np
-from src.data_utils.data_loader import get_category_mapping
+from src.utils import get_category_mapping
 
 def submission_csv(predictions, submission_file_path=None, YOLO=False, debug=False):
     submission_data = []

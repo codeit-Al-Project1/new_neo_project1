@@ -38,7 +38,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 import cv2
 import argparse
-from data_utils.data_loader import get_category_mapping
+from src.utils import get_category_mapping
 
 ANN_DIR = "data/train_annots_modify"
 idx_to_id = get_category_mapping(ann_dir=ANN_DIR, debug=True, return_types=['idx_to_id'])
@@ -62,7 +62,7 @@ def enable_weights_only_false():
     print("[INFO] torch.load monkey-patched: weights_only=False")
 
 
-def predict_yolo_and_export_csv(model_path, image_dir, conf_threshold=0.5, iou_threshold=0.7,
+def predict_and_get_csv(model_path, image_dir, conf_threshold=0.5, iou_threshold=0.7,
                                 save_csv_path=None, device=None, verbose=False, save_images=False):
     """
     YOLO 모델을 테스트 이미지에 적용하고 예측 결과를 주어진 형식의 CSV로 저장하는 함수.
@@ -197,7 +197,7 @@ if __name__ == "__main__":
     if args.force_load:
         enable_weights_only_false()
 
-    predict_yolo_and_export_csv(
+    predict_and_get_csv(
         model_path=args.model_path,
         image_dir=args.image_dir,
         conf_threshold=args.conf_threshold,

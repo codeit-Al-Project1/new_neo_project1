@@ -2,7 +2,7 @@
 # 실행 방법 및 인자 설명 (터미널 기준)
 #
 # 사용법:
-#   python src/data_utils/data_loader.py --mode <모드> --batch_size <배치 크기> [--debug] [--val_ratio <검증 비율>] [--seed <랜덤 시드>
+#   python -m src.data_utils.data_loader --mode <모드> --batch_size <배치 크기> [--debug] [--val_ratio <검증 비율>] [--seed <랜덤 시드>]
 #
 # 파싱 인자 설명:
 # --mode (필수)  
@@ -30,13 +30,13 @@
 #
 # 실행 예시 (터미널):
 # 1) 학습 데이터셋 로더 테스트
-#   python src/data_utils/data_loader.py --mode train --batch_size 4 --debug --val_ratio 0.2 --seed 42
+#   python -m src.data_utils.data_loader --mode train --batch_size 4 --debug --val_ratio 0.2 --seed 42
 #
 # 2) 검증 데이터셋 로더 테스트
-#   python src/data_utils/data_loader.py --mode val --batch_size 8 --debug --val_ratio 0.2 --seed 42
+#   python -m src.data_utils.data_loader --mode val --batch_size 8 --debug --val_ratio 0.2 --seed 42
 #
 # 3) 테스트 데이터셋 로더 테스트
-#   python src/data_utils/data_loader.py --mode test --batch_size 16 --debug
+#   python -m src.data_utils.data_loader --mode test --batch_size 16 --debug
 #
 # 프로젝트 폴더 예시:
 # data/
@@ -49,15 +49,21 @@
 #    pill_names 목록 등을 모두 확인 가능합니다!
 ########################################
 
+# 표준 라이브러리
 import os
+import sys
 import json
+import argparse
+
+# 서드파티 라이브러리
 from PIL import Image
 import torch
 from torch.utils.data import Dataset, DataLoader
 import torchvision.transforms.v2 as T
 from torchvision.tv_tensors import BoundingBoxes, Image as TVImage
-import argparse 
-import sys
+
+# 내부 모듈
+from src.utils import get_category_mapping
 
 ####################################################################################################
 # 1. 데이터 증강 및 전처리 Transform 정의 (학습/검증/테스트 분기)
@@ -95,108 +101,9 @@ def get_transforms(mode='train'):
     else:
         raise ValueError(f"Invalid mode: {mode}. Choose either 'train', 'val', or 'test'.")
 
-####################################################################################################
-# 2. json파일에서 카테고리 매핑을 만드는 함수
-def get_category_mapping(ann_dir, debug=False, add_more=False, return_types=None):
-    """
-    어노테이션 디렉토리 내 JSON 파일들을 탐색하여
-    ID, 이름, 인덱스 간 매핑을 생성하고 요청된 매핑을 반환하는 함수입니다.
-
-    Args:
-        ann_dir (str): 어노테이션 JSON 파일들이 저장된 디렉토리 경로
-        debug (bool): 디버깅 출력 여부
-        add_more (bool): True인 경우 'Background'와 'No Class'를 포함하여 인덱싱  
-                        False인 경우 0부터 시작하는 인덱스만 부여
-        return_types (Optional[List[str]]):  
-            반환할 매핑 키 리스트 (선택 가능한 매핑: 'id_to_name', 'name_to_id',  
-            'name_to_idx', 'idx_to_name', 'id_to_idx', 'idx_to_id')
-
-    Returns:
-        Dict[str, Any]: 요청된 매핑 딕셔너리
-
-    Note:
-        - 중복된 카테고리 이름은 제거 후 정렬합니다.
-        - add_more=True인 경우: 0은 'Background', 마지막 인덱스는 'No Class'로 지정
-        - add_more=False인 경우: 인덱스는 0부터 순차 부여
-        - 반환 매핑은 학습 및 시각화 등에 활용됩니다.
-    """
-    # 디버깅 메시지 출력
-    if not isinstance(ann_dir, str):
-        raise TypeError(f"ann_dir는 문자열(str)이어야 합니다. 현재 타입: {type(ann_dir)}")
-    if not os.path.exists(ann_dir):
-        raise FileNotFoundError(f"ann_dir 경로가 존재하지 않습니다: {ann_dir}")
-    if not isinstance(add_more, bool):
-        raise TypeError(f"add_more는 불리언 값이어야 합니다. 현재 타입: {type(add_more)}")
-    
-    id_to_name = {}
-    # 어노테이션 폴더 내 파일 순회
-    for file in os.listdir(ann_dir):
-        file_path = os.path.join(ann_dir, file)
-
-        if file.endswith(".json"):
-            # JSON 파일 처리
-            with open(file_path, 'r', encoding='utf-8') as f:
-                ann = json.load(f)
-                categories = ann.get('categories', [])
-
-                for cat in categories:
-                    id_to_name[cat['id']] = cat['name']
-
-    # 이름 기준 정렬
-    sorted_names = sorted(set(id_to_name.values())) # 중복 제거 후 정렬
-
-    name_to_idx = {}
-    if add_more:
-        # 1부터 인덱싱, 0은 배경, 마지막 숫자는 No Class
-        name_to_idx = {'Background': 0}
-        for idx, name in enumerate(sorted_names, start=1):
-            name_to_idx[name] = idx
-        name_to_idx['No Class'] = len(name_to_idx)
-    else:
-        for idx, name in enumerate(sorted_names):
-            name_to_idx[name] = idx
-
-    # 역 매핑
-    idx_to_name = {idx: name for name, idx in name_to_idx.items()}
-    name_to_id = {name: id for id, name in id_to_name.items()}
-
-    # 아이디 <-> 인덱스
-    id_to_idx = {id_: name_to_idx[name] for id_, name in id_to_name.items()}
-    idx_to_id = {idx: name_to_id[name] for idx, name in idx_to_name.items() if name in name_to_id}
-    
-    # 모든 매핑 저장
-    all_mappings = {
-        'id_to_name': id_to_name,
-        'name_to_id': name_to_id,
-        'name_to_idx': name_to_idx,
-        'idx_to_name': idx_to_name,
-        'id_to_idx': id_to_idx,
-        'idx_to_id': idx_to_id
-    }
-
-    if return_types is None:
-        result = all_mappings
-    elif len(return_types) == 1:
-        result = all_mappings[return_types[0]]
-    else:
-        result = tuple(all_mappings[k] for k in return_types)
-    
-    if debug:
-        print(f"[DEBUG] 반환 직전 매핑 결과:")
-        if isinstance(result, dict):
-            for key, value in result.items():
-                print(f"  {key}: {value}")
-        elif isinstance(result, tuple):
-            for idx, item in enumerate(result):
-                print(f"  반환 항목 {idx+1}: {item}")
-        else:
-            print(f"  반환 값: {result}")
-
-    return result
-
 
 ####################################################################################################
-# 3-1. 데이터셋(FRCNN)
+# 2. 데이터셋(FRCNN)
 class PillDataset(Dataset):
     def __init__(self, image_dir, ann_dir=None, mode='train', category_mapping=None, transform=None, bbox_format="XYXY", debug=False):
         """

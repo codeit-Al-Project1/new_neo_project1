@@ -14,23 +14,25 @@
 - tqdm
 - src.utils, src.data_utils, src.model_utils의 커스텀 모듈
 """
-# 외부 모듈듈
+
+# 서드파티 라이브러리 (외부 모듈)
 import numpy as np
-from tqdm import tqdm
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
 import torchvision.utils as vutils
 
-# 내부 모듈듈
-from src.utils import get_optimizer
-from src.utils import get_scheduler
-from src.utils import calculate_map
+# 내부 모듈
+from src.frcnn.utils import get_optimizer, get_scheduler, calculate_map
 from src.data_utils.data_loader import get_loader
-from src.data_utils.data_loader import get_category_mapping
-from src.model_utils.basic_frcnn import get_new_session_folder, save_model
-from src.model_utils.basic_frcnn import get_fast_rcnn_model
+from src.utils import get_category_mapping
+from src.model_utils.basic_frcnn import (
+    get_new_session_folder,
+    save_model,
+    get_fast_rcnn_model,
+)
 
 # 텐서보드 객체 생성
 writer = SummaryWriter("tensorboard_log_dir")

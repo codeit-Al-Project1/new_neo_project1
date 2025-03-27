@@ -7,7 +7,7 @@ from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
 from torchvision.models.detection.faster_rcnn import FasterRCNN_ResNet50_FPN_Weights
-from torchvision.models.detection.faster_rcnn import EfficientNetB3_FPN_Weights
+# from torchvision.models.detection.faster_rcnn import EfficientNetB3_FPN_Weights
 
 def get_fast_rcnn_model(num_classes, backbone="resnet50"):
     # 사용할 백본 선택
