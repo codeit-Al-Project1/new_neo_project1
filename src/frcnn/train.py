@@ -48,6 +48,7 @@ def train(img_dir: str,
           lr: float = 0.001,
           weight_decay: float = 0.0005,
           iou_threshold: float = 0.5,
+          conf_threshold: float = 0.5,
           device: str = "cpu",
           debug: bool = False):
     """
@@ -145,6 +146,16 @@ def train(img_dir: str,
             for images, targets in progress_bar:
                 images = [img.to(device) for img in images]
                 outputs = model(images) # boxes, labels, scores
+
+                filtered_outputs = []
+                for output in outputs:
+                    keep = output["scores"] > conf_threshold  # 특정 임계값 이상인 것만 선택
+                    filtered_outputs.append({
+                        "boxes": output["boxes"][keep],
+                        "labels": output["labels"][keep],
+                        "scores": output["scores"][keep]
+                    })
+
 
                 precision, recall, tp, fp, fn = compute_precision_recall(targets, outputs, iou_threshold=iou_threshold)
                 precision_list.append(precision)

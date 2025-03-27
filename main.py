@@ -25,7 +25,9 @@ from src.yolo.test import predict_and_get_csv, enable_weights_only_false
 🔹 실행 예제
 
 # ▶ [1] Faster R-CNN 학습
-python main.py --model frcnn --mode train --img_dir data/train_images --json_path data/train_annots_modify --backbone resnet50 --batch_size 4 --epochs 30 --optimizer_name sgd --scheduler_name plateau --lr 0.001 --weight_decay 0.0005
+ex)
+1. python main.py --model frcnn --mode train --img_dir data/train_images --json_path data/train_annots_modify --backbone resnet50 --batch_size 4 --epochs 30 --optimizer_name sgd --scheduler_name plateau --lr 0.001 --weight_decay 0.0005 --iou_threshold 0.3 --conf_threshold 0.7
+2. python main.py --model frcnn --mode train --img_dir data/train_images --json_path data/train_annots_modify --backbone mobilenet_v3_large --batch_size 8 --epochs 10 --optimizer_name adamw --scheduler_name step --lr 0.0001 --weight_decay 0.0001 --iou_threshold 0.3 --conf_threshold 0.7
 
 # ▶ [2] Faster R-CNN 테스트 (시각화 및 CSV 저장)
 python main.py --model frcnn --mode test --img_dir data/test_images --model_path models/frcnn_session_4/best_model_lr=0.001_ep=1_bs=4_opt=sgd_scd=plateau_wd=0.0005.pth --backbone resnet50 --threshold 0.5 --visualization --page_size 20 --page_lim 5
@@ -64,6 +66,8 @@ python main.py --model yolo --mode test --model_path runs/detect/yolov8n_custom/
 --visualization       : 시각화 이미지 및 CSV 파일 저장 여부
 --page_size           : 시각화 시 한 페이지당 이미지 수 (default: 20)
 --page_lim            : 시각화 페이지 수 제한 (default: None, 전체 시각화)
+--iou_threshold       : IoU 임계값 (default: 0.5)
+--conf_threshold      : confidence 임계값 (default: 0.5)
 
 ------------------------------------------------------------------------------------
 🔸 YOLO 전용 옵션
@@ -103,7 +107,8 @@ def main():
     parser.add_argument("--scheduler_name", type=str, choices=["step", "cosine", "plateau", "exponential"], default="plateau", help="FRCNN 스케줄러")
     parser.add_argument("--lr", type=float, default=0.001, help="학습률")
     parser.add_argument("--weight_decay", type=float, default=0.0005, help="L2 정규화")
-    parser.add_argument("--iou_threshold", type=float, default=0.5, help="IoU 임계값")
+    # parser.add_argument("--iou_threshold", type=float, default=0.5, help="IoU 임계값")
+    # parser.add_argument("--conf_threshold", type=float, default=0.5, help="confidence 임계값")
 
     # 테스트
     parser.add_argument("--test_batch_size", type=int, default=4, help="테스트 배치 사이즈")
@@ -146,6 +151,7 @@ def main():
                 lr=args.lr,
                 weight_decay=args.weight_decay,
                 iou_threshold=args.iou_threshold,
+                conf_threshold=args.conf_threshold,
                 device=args.device,
                 debug=args.debug,
             )
