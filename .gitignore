@@ -17,6 +17,7 @@ tensorboard_log_dir/*
 
 *.pt
 src/temp.py
+*.csv
 
 # 데이터 폴더 전체 무시 (개별 예외만 따로 위에서 설정)
 data/*
