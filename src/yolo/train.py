@@ -1,9 +1,9 @@
 #####################################################################################################
 # [모델 학습 실행 방법 예제]
-# python src/train_YOLO.py --mode train --img_dir data/train_labels/train --yaml_path data/train_labels/data.yaml --model_variant n --batch_size 8 --num_epochs 100 --device cpu
+# python src/train.py --mode train --img_dir data/train_labels/train --yaml_path data/train_labels/data.yaml --model_variant n --batch_size 8 --num_epochs 100 --device cpu
 #
 # [모델 검증 실행 방법 예제]
-# python src/train_YOLO.py --mode val --val_model_path runs/detect/yolov8n_custom/weights/best.pt
+# python src/train.py --mode val --val_model_path runs/detect/yolov8n_custom/weights/best.pt
 #
 # 각 인자 설명:
 # --mode             : 실행 모드 (train 또는 val)
@@ -66,7 +66,7 @@ def enable_weights_only_false():
     print("[INFO] torch.load monkey-patched: weights_only=False")
 
 
-def train_YOLO(img_dir, yaml_path, model_variant='n', batch_size=8, num_epochs=100, lr=0.001, weight_decay=0.0005, 
+def train(img_dir, yaml_path, model_variant='n', batch_size=8, num_epochs=100, lr=0.001, weight_decay=0.0005, 
                patience=100, device='cpu', optimizer='auto', seed=42, resume=False, debug=False):
     # 절대 경로로 변환
     if not os.path.isabs(img_dir):
@@ -118,7 +118,7 @@ def train_YOLO(img_dir, yaml_path, model_variant='n', batch_size=8, num_epochs=1
     )
 
 
-def val_yolo(model_path):
+def validate(model_path):
     # 절대 경로 변환 (안전하게)
     if not os.path.isabs(model_path):
         model_path = os.path.abspath(model_path)
@@ -173,7 +173,7 @@ def main():
             raise ValueError("[ERROR] 학습 모드에서는 --img_dir 인자가 필요합니다.")
         if not args.yaml_path:
             raise ValueError("[ERROR] 학습 모드에서는 --yaml_path 인자가 필요합니다.")
-        train_YOLO(
+        train(
             img_dir=args.img_dir,
             yaml_path=args.yaml_path,
             model_variant=args.model_variant,
@@ -191,7 +191,7 @@ def main():
     elif args.mode == 'val':
         if not args.val_model_path:
             raise ValueError("[ERROR] 검증 모드에서는 --val_model_path 인자를 지정해야 합니다.")
-        save_dir = val_yolo(args.val_model_path)
+        save_dir = validate(args.val_model_path)
         visualize(save_dir)
 
 if __name__ == "__main__":
