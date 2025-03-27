@@ -26,7 +26,7 @@ import torchvision.utils as vutils
 # 내부 모듈듈
 from src.utils import get_optimizer
 from src.utils import get_scheduler
-from src.utils import calculate_map
+from src.utils import compute_iou, compute_precision_recall, compute_ap
 from src.data_utils.data_loader import get_loader
 from src.data_utils.data_loader import get_category_mapping
 from src.model_utils.basic_frcnn import get_new_session_folder, save_model
@@ -126,39 +126,34 @@ def train(img_dir: str, json_dir: str, backbone: str = "resnet50", batch_size: i
         # 검증
         with torch.no_grad():
             model.eval()
-            predictions = []
-            targets_list = []
-            for images, targets in tqdm(val_loader, desc="Validation", dynamic_ncols=True):
+            precision_list = []
+            recall_list = []
+            ap_list = []
 
+            progress_bar = tqdm(val_loader, total=len(val_loader), desc='Validation', dynamic_ncols=True)
+            for images, targets in progress_bar:
                 images = [img.to(device) for img in images]
+                outputs = model(images) # boxes, labels, scores
 
-                outputs = model(images)
+                precision, recall, tp, fp, fn = compute_precision_recall(targets, outputs)
+                precision_list.append(precision)
+                recall_list.append(recall)
 
-                # 예측값 정리
-                for output in outputs:
-                    predictions.append({
-                        'boxes': output['boxes'].cpu().numpy().tolist(),
-                        'labels': output['labels'].cpu().numpy().tolist(),
-                        'scores': output['scores'].cpu().numpy().tolist()
-                    })
+                ap = compute_ap(precision_list, recall_list)
+                ap_list.append(ap)
 
-                # 실제값 정리
-                for target in targets:
-                    targets_list.append({
-                        'boxes': target['boxes'].cpu().numpy().tolist(),
-                        'labels': target['labels'].cpu().numpy().tolist()
-                    })
+                # 텐서보드에 기록
+                writer.add_scalar("ap", ap, epoch)
+                writer.add_scalar("Precision", precision, epoch)
+                writer.add_scalar("Recall", recall, epoch)
 
-            # mAP 계산
-            map_score, precision, recall = calculate_map(predictions, targets_list, num_classes, iou_threshold=0.5)
+                progress_bar.set_postfix(Precision=precision, Recall=recall, AP=ap)
+            
+            mean_precision = np.mean(precision_list)
+            mean_recall = np.mean(recall_list)
+            map_score = np.mean(ap_list)
 
-            # 텐서보드에 기록
-            writer.add_scalar("mAP", map_score, epoch)
-            writer.add_scalar("Precision", precision, epoch)
-            writer.add_scalar("Recall", recall, epoch)
-
-            print(f"mAP: {map_score}, Precision: {precision}, Recall: {recall}")
-                
+        print(f"Validation Complete - mAP: {map_score:.4f}, Mean Precision: {mean_precision:.4f}, Mean Recall: {mean_recall:.4f}")
 
         # 모델 저장
         if map_score > best_map_score:

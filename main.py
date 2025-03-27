@@ -21,7 +21,7 @@ python main.py --mode test --img_dir data/test_images --model_path model_31.pth
 python main.py --mode test --img_dir "data/test_images" --debug --visualization --model_path model_31.pth
 
 tensorboard --logdir=tensorboard_log_dir
-"models/frcnn_session_2/model_epoch=30 batch_size=4 opt=sgd sch=plateau lr=0_001 wd=0_0005.pth"
+"models/frcnn_session_11/best_model_lr=0.001_ep=10_bs=4_opt=sgd_scd=plateau_wd=0.0005.pth"
 
 예측 실행
 python main.py --mode test --img_dir "data/test_images"  --> 기본 실행
