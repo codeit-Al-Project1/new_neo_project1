@@ -1,5 +1,7 @@
 import os
 import torch
+import torch.nn as nn
+import torch.optim as optim
 import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection import fasterrcnn_resnet50_fpn
