@@ -16,63 +16,70 @@ from src.yolo.test import predict_and_get_csv, enable_weights_only_false
 
 """
 ====================================================================================
-Object Detection Main Entry (Faster R-CNN + YOLOv8 통합 스크립트)
+📌 Object Detection Main Entry (Faster R-CNN + YOLOv8 통합 스크립트)
 
-이 스크립트는 FRCNN과 YOLOv8 객체 탐지 모델을 통합 실행합니다.
---model 플래그를 통해 사용할 모델을 선택할 수 있으며, 각각의 학습 및 추론 모드에 맞는 인자를 제공합니다.
+이 스크립트는 FRCNN과 YOLOv8 객체 탐지 모델의 학습, 테스트, 검증을 통합 제공합니다.
+`--model` 인자를 통해 사용할 모델을 선택하고, `--mode`로 동작 모드를 지정하세요.
 
 ------------------------------------------------------------------------------------
-실행 예제
+🔹 실행 예제
 
-[1] FRCNN 학습
-python main.py --model frcnn --mode train --img_dir data/train_images --json_path data/train_annots_modify --backbone resnet50 --batch_size 4 --epochs 30 --optimizer sgd --scheduler plateau --lr 0.001 --weight_decay 0.0005
+# ▶ [1] Faster R-CNN 학습
+python main.py --model frcnn --mode train --img_dir data/train_images --json_path data/train_annots_modify --backbone resnet50 --batch_size 4 --epochs 30 --optimizer_name sgd --scheduler_name plateau --lr 0.001 --weight_decay 0.0005
 
-[2] FRCNN 테스트
-python main.py --model frcnn --mode test --img_dir data/test_images --model_path models/frcnn_session_2/model_31.pth --visualization --threshold 0.5
+# ▶ [2] Faster R-CNN 테스트 (시각화 및 CSV 저장)
+python main.py --model frcnn --mode test --img_dir data/test_images --model_path models/frcnn_session_2/model_31.pth --threshold 0.5 --visualization --page_size 20 --page_lim 5
 
-[3] YOLO 학습
-python main.py --model yolo --mode train --img_dir data/train_labels/train --yaml_path data/train_labels/data.yaml --model_variant n --batch_size 8 --epochs 100
+# ▶ [3] YOLOv8 학습
+python main.py --model yolo --mode train --img_dir data/train_labels/train --yaml_path data/train_labels/data.yaml --model_variant n --batch_size 8 --epochs 100 --lr 0.001 --weight_decay 0.0005
 
-[4] YOLO 검증 (validation)
+# ▶ [4] YOLOv8 검증 (validation)
 python main.py --model yolo --mode val --val_model_path runs/detect/yolov8n_custom/weights/best.pt
 
-[5] YOLO 테스트 (CSV 출력 포함)
-python main.py --model yolo --mode test --model_path runs/detect/yolov8n_custom/weights/best.pt --img_dir data/test_images --save_images --conf_threshold 0.5 --iou_threshold 0.7
+# ▶ [5] YOLOv8 테스트 (결과 이미지 저장 및 CSV 저장)
+python main.py --model yolo --mode test --model_path runs/detect/yolov8n_custom/weights/best.pt --img_dir data/test_images --save_images --save_csv_path submission_yolo.csv --conf_threshold 0.5 --iou_threshold 0.7
 
 ------------------------------------------------------------------------------------
-공통 옵션
---model               : 사용할 모델 선택 ('frcnn' or 'yolo')
---mode                : 실행 모드 ('train', 'test', 'val')
+🔸 공통 옵션
+--model               : 사용할 모델 선택 ['frcnn', 'yolo'] (필수)
+--mode                : 실행 모드 선택 ['train', 'test', 'val'] (필수)
+--img_dir             : 입력 이미지가 있는 디렉토리 (train/test 공통)
+--model_path          : 사전 학습된 모델 경로 (.pth or .pt)
+--device              : 사용할 디바이스 ['cuda', 'cpu'], 기본값: 자동 선택
+--debug               : 디버그 출력 활성화
+--force_load          : YOLO 가중치 pickle 오류 대응 (weights_only=False로 로딩 강제)
 
-FRCNN 전용 옵션
---img_dir             : 학습/테스트 이미지 디렉토리
---json_path           : 어노테이션 JSON 경로
---backbone            : 백본 모델 선택 (resnet50 등)
---batch_size          : 학습 배치 사이즈
---epochs              : 학습 에폭 수
---optimizer_name      : 옵티마이저 종류
---scheduler_name      : 러닝레이트 스케줄러
---lr                  : 학습률
---weight_decay        : L2 정규화 계수
---model_path          : 테스트할 모델(.pth) 경로
---threshold           : 예측 confidence threshold
---visualization       : 시각화 저장 여부
---debug               : 디버깅 모드 활성화
+------------------------------------------------------------------------------------
+🔸 FRCNN 전용 옵션
+--json_path           : 어노테이션 JSON 디렉토리 (default: data/train_annots_modify)
+--backbone            : 백본 모델 선택 ['resnet50', 'mobilenet_v3_large', 'resnext101']
+--batch_size          : 학습 배치 크기
+--epochs              : 학습 반복 횟수
+--optimizer_name      : 옵티마이저 종류 ['sgd', 'adam', 'adamw', 'rmsprop']
+--scheduler_name      : 러닝레이트 스케줄러 ['step', 'cosine', 'plateau', 'exponential']
+--lr                  : 초기 학습률
+--weight_decay        : L2 정규화 (weight decay)
+--test_batch_size     : 테스트용 배치 크기 (default: 4)
+--threshold           : confidence 임계값 (default: 0.5)
+--visualization       : 시각화 이미지 저장 여부
+--page_size           : 시각화 시 한 페이지당 이미지 수 (default: 20)
+--page_lim            : 시각화 페이지 수 제한 (default: None, 전체 시각화)
 
-YOLO 전용 옵션
+------------------------------------------------------------------------------------
+🔸 YOLO 전용 옵션
 --yaml_path           : YOLO 학습 시 사용할 data.yaml 경로
---model_variant       : YOLO 모델 버전 선택 (n/s/m/l)
---val_model_path      : YOLO val 모드 시 사용할 best.pt 경로
---resume              : 마지막 체크포인트에서 이어 학습
---conf_threshold      : YOLO confidence threshold (default 0.5)
---iou_threshold       : YOLO NMS IoU threshold (default 0.7)
---save_images         : 예측 결과 이미지 저장 여부
---save_csv_path       : YOLO 테스트 결과 CSV 저장 경로
+--model_variant       : YOLOv8 크기 선택 ['n', 's', 'm', 'l']
+--patience            : 조기 종료 patience (default: 100)
+--optimizer           : YOLO 전용 옵티마이저 ['auto', 'SGD', 'Adam' 등]
+--resume              : 학습 재시작 여부
+--val_model_path      : 검증 시 사용할 .pt 파일 경로
+--conf_threshold      : confidence threshold (default: 0.5)
+--iou_threshold       : NMS IoU threshold (default: 0.7)
+--save_images         : 예측 이미지 저장 여부 (YOLO test)
+--save_csv_path       : YOLO 테스트 결과를 저장할 CSV 경로
 
 ====================================================================================
 """
-
-
 
 def main():
     parser = argparse.ArgumentParser(description="Unified Object Detection Entry Point")
