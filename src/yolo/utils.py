@@ -19,7 +19,9 @@ from tensorboard.backend.event_processing.event_accumulator import EventAccumula
 def load_yolo_csv(csv_path):
     if not os.path.exists(csv_path):
         raise FileNotFoundError(f"CSV 파일이 존재하지 않습니다: {csv_path}")
-    return pd.read_csv(csv_path)
+    df = pd.read_csv(csv_path)
+    df.columns = df.columns.str.strip()  # 🔥 공백 제거
+    return df
 
 
 def load_tensorboard_log(log_dir, scalar_tags=None):
