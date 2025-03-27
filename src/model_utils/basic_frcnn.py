@@ -9,11 +9,27 @@ from torchvision.models.detection.rpn import AnchorGenerator
 from torchvision.models.detection.faster_rcnn import FasterRCNN_ResNet50_FPN_Weights
 # from torchvision.models.detection.faster_rcnn import EfficientNetB3_FPN_Weights
 
-def get_fast_rcnn_model(num_classes, backbone="resnet50"):
+class FocalLoss(nn.Module):
+    def __init__(self, alpha=0.25, gamma=2.0):
+        super(FocalLoss, self).__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+    
+    def forward(self, inputs, targets):
+        ce_loss = nn.functional.cross_entropy(inputs, targets, reduction='none')
+        pt = torch.exp(-ce_loss)
+        focal_loss = self.alpha * (1-pt) ** self.gamma * ce_loss
+        return focal_loss.mean()
+
+def get_fast_rcnn_model(num_classes, backbone="resnet50", focal=True, device: str = "cpu"):
     # 사용할 백본 선택
     if backbone == "resnet50":
         model = torchvision.models.detection.fasterrcnn_resnet50_fpn(weights=FasterRCNN_ResNet50_FPN_Weights.DEFAULT)
         in_features = model.roi_heads.box_predictor.cls_score.in_features
+        if focal:
+            model.roi_heads.box_predictor.cls_score = torch.nn.Linear(in_features, num_classes).to(device)
+            model.roi_heads.loss_classifier = FocalLoss(alpha=0.25, gamma=2.0).to(device)
+    
     
     elif backbone == "mobilenet_v3_large":
         backbone_model = torchvision.models.mobilenet_v3_large(weights="IMAGENET1K_V1").features
@@ -21,12 +37,18 @@ def get_fast_rcnn_model(num_classes, backbone="resnet50"):
         anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),), aspect_ratios=((0.5, 1.0, 2.0),) * 5)
         model = FasterRCNN(backbone_model, num_classes=num_classes, rpn_anchor_generator=anchor_generator)
         in_features = model.roi_heads.box_predictor.cls_score.in_features
+        if focal:
+            model.roi_heads.box_predictor.cls_score = torch.nn.Linear(in_features, num_classes).to(device)
+            model.roi_heads.loss_classifier = FocalLoss(alpha=0.25, gamma=2.0).to(device)
     
     elif backbone == "resnext101":
         backbone_model = torchvision.models.resnext101_32x8d(weights="IMAGENET1K_V1")
         backbone_model = torchvision.models.detection.backbone_utils.resnet_fpn_backbone("resnext101_32x8d", pretrained=True)
         model = FasterRCNN(backbone_model, num_classes=num_classes)
         in_features = model.roi_heads.box_predictor.cls_score.in_features
+        if focal:
+            model.roi_heads.box_predictor.cls_score = torch.nn.Linear(in_features, num_classes).to(device)
+            model.roi_heads.loss_classifier = FocalLoss(alpha=0.25, gamma=2.0).to(device)
 
     elif backbone == "efficientnet_b3":
         backbone_model = torchvision.models.efficientnet_b3(weights="IMAGENET1K_V1").features
@@ -34,6 +56,9 @@ def get_fast_rcnn_model(num_classes, backbone="resnet50"):
         anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),), aspect_ratios=((0.5, 1.0, 2.0),) * 5)
         model = FasterRCNN(backbone_model, num_classes=num_classes, rpn_anchor_generator=anchor_generator)
         in_features = model.roi_heads.box_predictor.cls_score.in_features
+        if focal:
+            model.roi_heads.box_predictor.cls_score = torch.nn.Linear(in_features, num_classes).to(device)
+            model.roi_heads.loss_classifier = FocalLoss(alpha=0.25, gamma=2.0).to(device)
     
     else:
         raise ValueError(f"Unsupported backbone: {backbone}")

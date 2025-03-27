@@ -2,7 +2,7 @@ import csv
 import numpy as np
 from src.utils import get_category_mapping
 
-def submission_csv(predictions, submission_file_path=None, YOLO=False, debug=False):
+def submission_csv(predictions, submission_file_path=None, debug=False):
     submission_data = []
     annotation_id = 1
 
@@ -34,20 +34,15 @@ def submission_csv(predictions, submission_file_path=None, YOLO=False, debug=Fal
         labels = pred['labels']
         scores = pred['scores']
 
-        # YOLO 형식의 바운딩 박스를 COCO 형식으로 변환: (x_center, y_center, w, h) -> (x, y, w, h)
-        if YOLO and len(bbox) > 0:
-            bbox[:, 0] = bbox[:, 0] - (bbox[:, 2] / 2)  # x_center -> x
-            bbox[:, 1] = bbox[:, 1] - (bbox[:, 3] / 2)  # y_center -> y
-
         for j in range(len(bbox)):
             submission_data.append([
                 annotation_id,                # annotation_id (순차적인 인덱스 넘버)
                 image_id,                     # image_id (이미지 파일명)
                 idx_to_id[labels[j]],                    # category_id (예측한 클래스)
-                bbox[j][0],                   # bbox_x
-                bbox[j][1],                   # bbox_y
-                bbox[j][2],                   # bbox_w
-                bbox[j][3],                   # bbox_h
+                bbox[j][0],                   # x_min
+                bbox[j][1],                   # y_min
+                bbox[j][2] - bbox[j][0],                   # w = x_max - x_min
+                bbox[j][3] - bbox[j][1],                   # h = y_max - y_min
                 scores[j]                     # score (신뢰도)
             ])
             annotation_id += 1
