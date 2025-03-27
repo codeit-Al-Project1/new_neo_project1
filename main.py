@@ -25,7 +25,7 @@ from src.yolo.test import predict_and_get_csv, enable_weights_only_false
 🔹 실행 예제
 
 # ▶ [1] Faster R-CNN 학습
-python main.py --model frcnn --mode train --img_dir data/train_images --json_path data/train_annots_modify --backbone resnet50 --batch_size 4 --epochs 30 --optimizer_name sgd --scheduler_name plateau --lr 0.001 --weight_decay 0.0005
+python main.py --model frcnn --mode train --img_dir data/train_images --json_path data/train_annots_modify --backbone mobilenet_v3_large --batch_size 4 --epochs 5 --optimizer_name sgd --scheduler_name plateau --lr 0.001 --weight_decay 0.0005
 
 # ▶ [2] Faster R-CNN 테스트 (시각화 및 CSV 저장)
 python main.py --model frcnn --mode test --img_dir data/test_images --model_path models/frcnn_session_4/best_model_lr=0.001_ep=1_bs=4_opt=sgd_scd=plateau_wd=0.0005.pth --threshold 0.5 --visualization --page_size 20 --page_lim 5
