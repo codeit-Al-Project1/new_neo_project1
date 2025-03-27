@@ -57,7 +57,7 @@ def get_scheduler(name, optimizer, step_size=5, gamma=0.1, T_max=50):
 
     return schedulers[name.lower()]
 
-
+# IoU 계산 함수
 def compute_iou(box1, box2):
     """Intersection over Union (IoU) 계산"""
     x1, y1, x2, y2 = box1
@@ -73,8 +73,7 @@ def compute_iou(box1, box2):
     box2_area = (x2_pred - x1_pred) * (y2_pred - y1_pred)
 
     union_area = box1_area + box2_area - inter_area
-    iou = inter_area / union_area if union_area > 0 else 0
-    return iou
+    return inter_area / union_area if union_area > 0 else 0
 
 def compute_precision_recall(targets, predictions, iou_threshold=0.5):
     """Precision과 Recall 계산"""
@@ -82,7 +81,6 @@ def compute_precision_recall(targets, predictions, iou_threshold=0.5):
     fp = 0
     fn = 0
 
-    # 대상 박스와 예측 박스를 비교하여 TP, FP, FN 계산
     for target, prediction in zip(targets, predictions):
         target_labels = target['labels']
         target_boxes = target['boxes']
@@ -91,36 +89,43 @@ def compute_precision_recall(targets, predictions, iou_threshold=0.5):
         pred_boxes = prediction['boxes']
         pred_scores = prediction['scores']
 
+        matched_preds = set()
         for t_label, t_box in zip(target_labels, target_boxes):
             found_match = False
-            for p_label, p_box, p_score in zip(pred_labels, pred_boxes, pred_scores):
-                if compute_iou(t_box, p_box) >= iou_threshold and t_label == p_label:
+            for idx, (p_label, p_box, p_score) in enumerate(zip(pred_labels, pred_boxes, pred_scores)):
+                if compute_iou(t_box, p_box) >= iou_threshold and t_label == p_label and idx not in matched_preds:
                     tp += 1
+                    matched_preds.add(idx)
                     found_match = True
                     break
             if not found_match:
                 fn += 1
 
-        fp += len(pred_labels) - tp  # False positives are the predictions without matches
+        fp += len(pred_labels) - len(matched_preds)  # FP는 매칭되지 않은 예측 박스 수
     
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0
     recall = tp / (tp + fn) if (tp + fn) > 0 else 0
     
     return precision, recall, tp, fp, fn
 
-def compute_ap(precision, recall):
+def compute_ap(precisions, recalls):
     """Average Precision 계산 (Interpolated)"""
-    # Interpolated AP를 구하려면 precision과 recall의 값들을 보간하여 계산합니다.
-    recall = np.concatenate(([0], recall, [1]))
-    precision = np.concatenate(([0], precision, [0]))
+    precisions = np.array(precisions)
+    recalls = np.array(recalls)
     
-    for i in range(len(precision) - 2, -1, -1):
-        precision[i] = max(precision[i], precision[i + 1])
-    
-    # AP는 Precision-Recall Curve 아래의 면적 (곡선의 누적합)으로 구합니다.
-    ap = np.sum((recall[1:] - recall[:-1]) * precision[1:])
-    
+    sorted_indices = np.argsort(recalls)
+    recalls = recalls[sorted_indices]
+    precisions = precisions[sorted_indices]
+
+    recalls = np.concatenate(([0], recalls, [1]))
+    precisions = np.concatenate(([0], precisions, [0]))
+
+    for i in range(len(precisions) - 2, -1, -1):
+        precisions[i] = max(precisions[i], precisions[i + 1])
+
+    ap = np.sum((recalls[1:] - recalls[:-1]) * precisions[1:])
     return ap
+
 
 # 시각화 함수
 def draw_bbox(ax, box, text, color):
