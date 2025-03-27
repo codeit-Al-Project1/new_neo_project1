@@ -16,7 +16,7 @@ from src.yolo.test import predict_and_get_csv, enable_weights_only_false
 
 """
 ====================================================================================
-📌 Object Detection Main Entry (Faster R-CNN + YOLOv8 통합 스크립트)
+🔹 Object Detection Main Entry (Faster R-CNN + YOLOv8 통합 스크립트)
 
 이 스크립트는 FRCNN과 YOLOv8 객체 탐지 모델의 학습, 테스트, 검증을 통합 제공합니다.
 `--model` 인자를 통해 사용할 모델을 선택하고, `--mode`로 동작 모드를 지정하세요.

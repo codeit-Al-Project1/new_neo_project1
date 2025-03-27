@@ -57,121 +57,70 @@ def get_scheduler(name, optimizer, step_size=5, gamma=0.1, T_max=50):
 
     return schedulers[name.lower()]
 
-# IoU 계산 함수
-def calculate_iou(box1, box2):
-    # box = [x_min, y_min, x_max, y_max]
-    x_min1, y_min1, x_max1, y_max1 = box1
-    x_min2, y_min2, x_max2, y_max2 = box2
-    
-    # 교집합 부분
-    x_min_inter = max(x_min1, x_min2)
-    y_min_inter = max(y_min1, y_min2)
-    x_max_inter = min(x_max1, x_max2)
-    y_max_inter = min(y_max1, y_max2)
-    
-    # 교집합 영역이 존재하는지 확인
-    if x_max_inter < x_min_inter or y_max_inter < y_min_inter:
-        return 0.0  # 교집합이 없으면 IoU는 0
-    
-    # 교집합 면적
-    inter_area = (x_max_inter - x_min_inter) * (y_max_inter - y_min_inter)
-    
-    # 합집합 면적
-    area1 = (x_max1 - x_min1) * (y_max1 - y_min1)
-    area2 = (x_max2 - x_min2) * (y_max2 - y_min2)
-    
-    # IoU 계산
-    iou = inter_area / (area1 + area2 - inter_area)
+
+def compute_iou(box1, box2):
+    """Intersection over Union (IoU) 계산"""
+    x1, y1, x2, y2 = box1
+    x1_pred, y1_pred, x2_pred, y2_pred = box2
+
+    inter_x1 = max(x1, x1_pred)
+    inter_y1 = max(y1, y1_pred)
+    inter_x2 = min(x2, x2_pred)
+    inter_y2 = min(y2, y2_pred)
+
+    inter_area = max(0, inter_x2 - inter_x1) * max(0, inter_y2 - inter_y1)
+    box1_area = (x2 - x1) * (y2 - y1)
+    box2_area = (x2_pred - x1_pred) * (y2_pred - y1_pred)
+
+    union_area = box1_area + box2_area - inter_area
+    iou = inter_area / union_area if union_area > 0 else 0
     return iou
 
-def calculate_ap(predictions, targets, iou_threshold=0.5):
-    tp, fp, fn = [], [], []
-    matched_targets = []
+def compute_precision_recall(targets, predictions, iou_threshold=0.5):
+    """Precision과 Recall 계산"""
+    tp = 0
+    fp = 0
+    fn = 0
 
-    # 예측을 confidence 순으로 정렬
-    predictions = sorted(predictions, key=lambda x: max(x['scores']), reverse=True)
+    # 대상 박스와 예측 박스를 비교하여 TP, FP, FN 계산
+    for target, prediction in zip(targets, predictions):
+        target_labels = target['labels']
+        target_boxes = target['boxes']
+        
+        pred_labels = prediction['labels']
+        pred_boxes = prediction['boxes']
+        pred_scores = prediction['scores']
 
-    for pred in predictions:
-        pred_boxes = pred['boxes']
-        pred_labels = pred['labels']
-
-        for pred_bbox, pred_class_id in zip(pred_boxes, pred_labels):
-            target_bboxes = [target['boxes'] for target in targets if pred_class_id in target['labels']]
-            if not target_bboxes:
-                fp.append(1)
-                continue
-
-            target_bboxes = [bbox for sublist in target_bboxes for bbox in sublist]
-            ious = [calculate_iou(pred_bbox, target_bbox) for target_bbox in target_bboxes]
-
-            matched = False
-            for iou, target_bbox in zip(ious, target_bboxes):
-                if iou >= iou_threshold and target_bbox not in matched_targets:
-                    tp.append(1)
-                    fp.append(0)
-                    matched_targets.append(target_bbox)
-                    matched = True
+        for t_label, t_box in zip(target_labels, target_boxes):
+            found_match = False
+            for p_label, p_box, p_score in zip(pred_labels, pred_boxes, pred_scores):
+                if compute_iou(t_box, p_box) >= iou_threshold and t_label == p_label:
+                    tp += 1
+                    found_match = True
                     break
+            if not found_match:
+                fn += 1
 
-            if not matched:
-                tp.append(0)
-                fp.append(1)
-
-    tp, fp = np.array(tp), np.array(fp)
-
-    if len(tp) != len(fp):
-        min_len = min(len(tp), len(fp))
-        tp, fp = tp[:min_len], fp[:min_len]
-
-    cumsum_tp = np.cumsum(tp)
-    cumsum_fp = np.cumsum(fp)
-
-    precision = np.divide(cumsum_tp, (cumsum_tp + cumsum_fp), where=(cumsum_tp + cumsum_fp) != 0)
+        fp += len(pred_labels) - tp  # False positives are the predictions without matches
     
-    recall = np.zeros_like(cumsum_tp) if len(targets) == 0 else cumsum_tp / len(targets)
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+    recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+    
+    return precision, recall, tp, fp, fn
 
-    # Recall 기준으로 정렬
-    sorted_indices = np.argsort(recall)
-    recall = recall[sorted_indices]
-    precision = precision[sorted_indices]
-
-    # Precision을 non-decreasing하게 보정
-    for i in range(len(precision) - 1, 0, -1):
-        precision[i - 1] = max(precision[i - 1], precision[i])
-
-    # AP 계산 (보정 후 적분)
-    ap = np.trapz(precision, recall)
-
-    return ap, precision, recall  # AP 보정
-
-def calculate_map(predictions, targets, num_classes, iou_threshold=0.5):
-    ap_values, precisions, recalls = [], [], []
-
-    for class_id in range(1, num_classes + 1):
-        class_predictions = [p for p in predictions if class_id in p['labels']]
-        class_targets = [t for t in targets if class_id in t['labels']]
-
-        ap, precision, recall = calculate_ap(class_predictions, class_targets, iou_threshold)
-        ap_values.append(ap)
-        precisions.append(precision)
-        recalls.append(recall)
-
-    # AP 보정: 1을 초과하지 않도록
-    ap_values = [min(ap, 1.0) for ap in ap_values]
-
-    # 전체 바운딩 박스 개수 계산
-    num_gt_boxes = sum(len(target['boxes']) for target in targets)
-
-    # Recall과 Precision 값 수정
-    map_score = np.mean(ap_values)
-    mean_precision = np.mean([np.mean(p) if len(p) > 0 else 0 for p in precisions]) if len(precisions) > 0 else 0
-    mean_recall = np.mean([np.mean(r) if len(r) > 0 else 0 for r in recalls]) if num_gt_boxes > 0 else 0
-
-    # map_score = np.mean(ap_values)
-    # mean_precision = np.mean([np.mean(p) for p in precisions if len(p) > 0]) if len(precisions) > 0 else 0
-    # mean_recall = np.mean([np.mean(r) for r in recalls if len(r) > 0]) if len(recalls) > 0 else 0
-
-    return map_score, mean_precision, mean_recall
+def compute_ap(precision, recall):
+    """Average Precision 계산 (Interpolated)"""
+    # Interpolated AP를 구하려면 precision과 recall의 값들을 보간하여 계산합니다.
+    recall = np.concatenate(([0], recall, [1]))
+    precision = np.concatenate(([0], precision, [0]))
+    
+    for i in range(len(precision) - 2, -1, -1):
+        precision[i] = max(precision[i], precision[i + 1])
+    
+    # AP는 Precision-Recall Curve 아래의 면적 (곡선의 누적합)으로 구합니다.
+    ap = np.sum((recall[1:] - recall[:-1]) * precision[1:])
+    
+    return ap
 
 # 시각화 함수
 def draw_bbox(ax, box, text, color):
