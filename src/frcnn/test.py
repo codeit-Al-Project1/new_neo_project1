@@ -17,7 +17,7 @@ from src.frcnn.utils import resize_bbox_to_original
 
 #############################################################################################
 # 테스트 함수
-def test(img_dir, device='cpu', model_path=None, backbone='mobilenet_v3_large', batch_size=8, threshold=0.5, debug=False):
+def test(img_dir, device='cpu', model_path=None, backbone='resnet50', batch_size=8, threshold=0.5, debug=False):
     """
     테스트 함수 (test)
 

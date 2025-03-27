@@ -38,9 +38,18 @@ from src.model_utils.basic_frcnn import (
 writer = SummaryWriter("tensorboard_log_dir")
 
 
-def train(img_dir: str, json_dir: str, backbone: str = "resnet50", batch_size: int = 8, num_epochs: int = 5, optimizer_name: str = "sgd", 
-          scheduler_name: str = "plateau", lr: float = 0.001, weight_decay: float = 0.0005, 
-          device: str = "cpu", debug: bool = False):
+def train(img_dir: str,
+          json_dir: str,
+          backbone: str = "resnet50",
+          batch_size: int = 8,
+          num_epochs: int = 5,
+          optimizer_name: str = "sgd", 
+          scheduler_name: str = "plateau",
+          lr: float = 0.001,
+          weight_decay: float = 0.0005,
+          iou_threshold: float = 0.5,
+          device: str = "cpu",
+          debug: bool = False):
     """
     Faster R-CNN 모델을 학습하는 함수
     
@@ -60,7 +69,7 @@ def train(img_dir: str, json_dir: str, backbone: str = "resnet50", batch_size: i
     # 입력값 검증
     assert isinstance(img_dir, str), "img_dir must be a string"
     assert isinstance(json_dir, str), "json_dir must be a string"
-    assert backbone in ["resnet50", "mobilenet_v3_large", "resnext101"], "backbone must be one of ['resnet50', 'mobilenet_v3_large', 'resnext101']"
+    assert backbone in ["resnet50", "mobilenet_v3_large", "resnext101", "efficientnet_b3"], "backbone must be one of ['resnet50', 'mobilenet_v3_large', 'resnext101', 'efficientnet_b3']"
     assert isinstance(batch_size, int) and batch_size > 0, "batch_size must be a positive integer"
     assert isinstance(num_epochs, int) and num_epochs > 0, "num_epochs must be a positive integer"
     assert isinstance(optimizer_name, str), "optimizer_name must be a string"
@@ -104,7 +113,7 @@ def train(img_dir: str, json_dir: str, backbone: str = "resnet50", batch_size: i
 
 
             losses.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0) # SGD를 사용하는 모델의 그래디언트 값이 너무 커지는 것을 방지하기 위해 그래디언트 클리핑
             optimizer.step()
 
             total_loss += losses.item()
@@ -137,7 +146,7 @@ def train(img_dir: str, json_dir: str, backbone: str = "resnet50", batch_size: i
                 images = [img.to(device) for img in images]
                 outputs = model(images) # boxes, labels, scores
 
-                precision, recall, tp, fp, fn = compute_precision_recall(targets, outputs)
+                precision, recall, tp, fp, fn = compute_precision_recall(targets, outputs, iou_threshold=iou_threshold)
                 precision_list.append(precision)
                 recall_list.append(recall)
 

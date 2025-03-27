@@ -28,7 +28,7 @@ from src.yolo.test import predict_and_get_csv, enable_weights_only_false
 python main.py --model frcnn --mode train --img_dir data/train_images --json_path data/train_annots_modify --backbone resnet50 --batch_size 4 --epochs 30 --optimizer_name sgd --scheduler_name plateau --lr 0.001 --weight_decay 0.0005
 
 # ▶ [2] Faster R-CNN 테스트 (시각화 및 CSV 저장)
-python main.py --model frcnn --mode test --img_dir data/test_images --model_path models/frcnn_session_4/best_model_lr=0.001_ep=1_bs=4_opt=sgd_scd=plateau_wd=0.0005.pth --threshold 0.5 --visualization --page_size 20 --page_lim 5
+python main.py --model frcnn --mode test --img_dir data/test_images --model_path models/frcnn_session_4/best_model_lr=0.001_ep=1_bs=4_opt=sgd_scd=plateau_wd=0.0005.pth --backbone resnet50 --threshold 0.5 --visualization --page_size 20 --page_lim 5
 
 # ▶ [3] YOLOv8 학습
 python main.py --model yolo --mode train --img_dir data/train_labels/train --yaml_path data/train_labels/data.yaml --model_variant n --batch_size 8 --epochs 100 --lr 0.001 --weight_decay 0.0005
@@ -52,7 +52,7 @@ python main.py --model yolo --mode test --model_path runs/detect/yolov8n_custom/
 ------------------------------------------------------------------------------------
 🔸 FRCNN 전용 옵션
 --json_path           : 어노테이션 JSON 디렉토리 (default: data/train_annots_modify)
---backbone            : 백본 모델 선택 ['resnet50', 'mobilenet_v3_large', 'resnext101']
+--backbone            : 백본 모델 선택 ['resnet50', 'mobilenet_v3_large', 'resnext101', "efficientnet_b3"]
 --batch_size          : 학습 배치 크기
 --epochs              : 학습 반복 횟수
 --optimizer_name      : 옵티마이저 종류 ['sgd', 'adam', 'adamw', 'rmsprop']
@@ -96,13 +96,14 @@ def main():
     # ───────────── FRCNN 인자 ─────────────
     # 학습
     parser.add_argument("--json_path", type=str, default="data/train_annots_modify", help="어노테이션 JSON 파일 경로")
-    parser.add_argument("--backbone", type=str, choices=["resnet50", "mobilenet_v3_large", "resnext101"], help="백본 모델")
+    parser.add_argument("--backbone", type=str, choices=["resnet50", "mobilenet_v3_large", "resnext101", "efficientnet_b3"], help="백본 모델")
     parser.add_argument("--batch_size", type=int, default=16, help="학습 배치 사이즈")
     parser.add_argument("--epochs", type=int, default=5, help="에폭 수")
     parser.add_argument("--optimizer_name", type=str, choices=["sgd", "adam", "adamw", "rmsprop"], default="sgd", help="FRCNN 옵티마이저")
     parser.add_argument("--scheduler_name", type=str, choices=["step", "cosine", "plateau", "exponential"], default="plateau", help="FRCNN 스케줄러")
     parser.add_argument("--lr", type=float, default=0.001, help="학습률")
     parser.add_argument("--weight_decay", type=float, default=0.0005, help="L2 정규화")
+    parser.add_argument("--iou_threshold", type=float, default=0.5, help="IoU 임계값")
 
     # 테스트
     parser.add_argument("--test_batch_size", type=int, default=4, help="테스트 배치 사이즈")
@@ -144,6 +145,7 @@ def main():
                 scheduler_name=args.scheduler_name,
                 lr=args.lr,
                 weight_decay=args.weight_decay,
+                iou_threshold=args.iou_threshold,
                 device=args.device,
                 debug=args.debug,
             )
@@ -152,6 +154,7 @@ def main():
             print("[FRCNN] 테스트 시작")
             results = test_frcnn(
                 img_dir=args.img_dir,
+                backbone=args.backbone,
                 device=args.device,
                 model_path=args.model_path,
                 batch_size=args.test_batch_size,
