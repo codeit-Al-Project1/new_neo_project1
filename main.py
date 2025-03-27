@@ -45,6 +45,10 @@ python main.py --model yolo --mode test --model_path runs/detect/yolov8n_custom/
 --mode                : 실행 모드 선택 ['train', 'test', 'val'] (필수)
 --img_dir             : 입력 이미지가 있는 디렉토리 (train/test 공통)
 --model_path          : 사전 학습된 모델 경로 (.pth or .pt)
+--batch_size          : 학습 배치 크기
+--epochs              : 학습 반복 횟수
+--lr                  : 초기 학습률
+--weight_decay        : L2 정규화 (weight decay)
 --device              : 사용할 디바이스 ['cuda', 'cpu'], 기본값: 자동 선택
 --debug               : 디버그 출력 활성화
 --force_load          : YOLO 가중치 pickle 오류 대응 (weights_only=False로 로딩 강제)
@@ -53,12 +57,8 @@ python main.py --model yolo --mode test --model_path runs/detect/yolov8n_custom/
 🔸 FRCNN 전용 옵션
 --json_path           : 어노테이션 JSON 디렉토리 (default: data/train_annots_modify)
 --backbone            : 백본 모델 선택 ['resnet50', 'mobilenet_v3_large', 'resnext101']
---batch_size          : 학습 배치 크기
---epochs              : 학습 반복 횟수
 --optimizer_name      : 옵티마이저 종류 ['sgd', 'adam', 'adamw', 'rmsprop']
 --scheduler_name      : 러닝레이트 스케줄러 ['step', 'cosine', 'plateau', 'exponential']
---lr                  : 초기 학습률
---weight_decay        : L2 정규화 (weight decay)
 --test_batch_size     : 테스트용 배치 크기 (default: 4)
 --threshold           : confidence 임계값 (default: 0.5)
 --visualization       : 시각화 이미지 및 CSV 파일 저장 여부
@@ -70,7 +70,7 @@ python main.py --model yolo --mode test --model_path runs/detect/yolov8n_custom/
 --yaml_path           : YOLO 학습 시 사용할 data.yaml 경로
 --model_variant       : YOLOv8 크기 선택 ['n', 's', 'm', 'l']
 --patience            : 조기 종료 patience (default: 100)
---optimizer           : YOLO 전용 옵티마이저 ['auto', 'SGD', 'Adam' 등]
+--optimizer           : YOLO 전용 옵티마이저 ['auto', 'SGD', 'Adam', 'AdamW', 'RMSProp' 등]
 --resume              : 학습 재시작 여부
 --val_model_path      : 검증 시 사용할 .pt 파일 경로
 --conf_threshold      : confidence threshold (default: 0.5)
