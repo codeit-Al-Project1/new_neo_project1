@@ -285,6 +285,14 @@ def is_colab():
         return True
     except ImportError:
         return False
+    
+def is_lightning_ai():
+    # lightning.ai 환경 여부를 확인 (예시: 환경 변수나 설치된 라이브러리 체크)
+    try:
+        import lightning
+        return True
+    except ImportError:
+        return False
 
 # Colab 환경일 경우와 로컬 환경일 경우 폰트 설정 분리
 if is_colab():
@@ -292,6 +300,11 @@ if is_colab():
     plt.rc('font', family='NanumBarunGothic')
     plt.rcParams['axes.unicode_minus'] = False
     print("Colab 환경에서 실행 중입니다.")
+elif is_lightning_ai():
+    # lightning.ai 환경에서 사용할 폰트 설정 (예: NanumGothic)
+    plt.rc('font', family='NanumBarunGothic')
+    plt.rcParams['axes.unicode_minus'] = False
+    print("lightning.ai 환경에서 실행 중입니다.")
 else:
     # 로컬 환경에서 사용할 폰트 설정
     plt.rc('font', family='Malgun Gothic')  # Windows의 경우 'Malgun Gothic' 사용
@@ -301,6 +314,3 @@ else:
 # ▶ Warnings 제거
 warnings.filterwarnings('ignore')
 # ====================================================================================
-
-
-
