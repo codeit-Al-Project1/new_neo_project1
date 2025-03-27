@@ -28,7 +28,7 @@ from src.yolo.test import predict_and_get_csv, enable_weights_only_false
 python main.py --model frcnn --mode train --img_dir data/train_images --json_path data/train_annots_modify --backbone resnet50 --batch_size 4 --epochs 30 --optimizer_name sgd --scheduler_name plateau --lr 0.001 --weight_decay 0.0005
 
 # ▶ [2] Faster R-CNN 테스트 (시각화 및 CSV 저장)
-python main.py --model frcnn --mode test --img_dir data/test_images --model_path models/frcnn_session_2/model_31.pth --threshold 0.5 --visualization --page_size 20 --page_lim 5
+python main.py --model frcnn --mode test --img_dir data/test_images --model_path models/frcnn_session_4/best_model_lr=0.001_ep=1_bs=4_opt=sgd_scd=plateau_wd=0.0005.pth --threshold 0.5 --visualization --page_size 20 --page_lim 5
 
 # ▶ [3] YOLOv8 학습
 python main.py --model yolo --mode train --img_dir data/train_labels/train --yaml_path data/train_labels/data.yaml --model_variant n --batch_size 8 --epochs 100 --lr 0.001 --weight_decay 0.0005
@@ -61,7 +61,7 @@ python main.py --model yolo --mode test --model_path runs/detect/yolov8n_custom/
 --weight_decay        : L2 정규화 (weight decay)
 --test_batch_size     : 테스트용 배치 크기 (default: 4)
 --threshold           : confidence 임계값 (default: 0.5)
---visualization       : 시각화 이미지 저장 여부
+--visualization       : 시각화 이미지 및 CSV 파일 저장 여부
 --page_size           : 시각화 시 한 페이지당 이미지 수 (default: 20)
 --page_lim            : 시각화 페이지 수 제한 (default: None, 전체 시각화)
 

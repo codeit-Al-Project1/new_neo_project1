@@ -7,6 +7,7 @@ from torchvision.models.detection import FasterRCNN_ResNet50_FPN_Weights
 from torchvision.models.detection import FasterRCNN
 from torchvision.models.detection.rpn import AnchorGenerator
 from torchvision.models.detection.faster_rcnn import FasterRCNN_ResNet50_FPN_Weights
+# from torchvision.models.detection.faster_rcnn import EfficientNetB3_FPN_Weights
 
 def get_fast_rcnn_model(num_classes, backbone="resnet50"):
     # 사용할 백본 선택
@@ -27,6 +28,13 @@ def get_fast_rcnn_model(num_classes, backbone="resnet50"):
         model = FasterRCNN(backbone_model, num_classes=num_classes)
         in_features = model.roi_heads.box_predictor.cls_score.in_features
 
+    elif backbone == "efficientnet_b3":
+        backbone_model = torchvision.models.efficientnet_b3(weights="IMAGENET1K_V1").features
+        backbone_model.out_channels = 1536  # EfficientNet-B3의 출력 채널
+        anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),), aspect_ratios=((0.5, 1.0, 2.0),) * 5)
+        model = FasterRCNN(backbone_model, num_classes=num_classes, rpn_anchor_generator=anchor_generator)
+        in_features = model.roi_heads.box_predictor.cls_score.in_features
+    
     else:
         raise ValueError(f"Unsupported backbone: {backbone}")
 
@@ -34,6 +42,7 @@ def get_fast_rcnn_model(num_classes, backbone="resnet50"):
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
 
     return model
+
 
 def get_new_session_folder(save_dir="./models", session_prefix="frcnn_session_"):
     """
