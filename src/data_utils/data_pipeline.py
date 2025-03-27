@@ -1,14 +1,19 @@
+# 표준 라이브러리
 import os
 import json
 import shutil
 import zipfile
 import glob
-import gdown
 import argparse
+
+# 서드파티 라이브러리
+import gdown
 from tqdm import tqdm
 from sklearn.model_selection import train_test_split
 from kaggle.api.kaggle_api_extended import KaggleApi
-from src.data_utils.data_loader import get_category_mapping
+
+# 내부 모듈
+from src.utils import get_category_mapping
 
 # 전체 실행 (다운로드 → json 변환 → yolo 변환 → 분할 → yaml 생성)
 # python -m src.data_utils.data_pipeline --path ./data --output_dir ./data/train_annots_modify --json_folder ./data/train_annotations --download --extract --image_dir ./data/train_images --label_output_dir ./data/train_labels --test_size 0.2 --debug --step all
