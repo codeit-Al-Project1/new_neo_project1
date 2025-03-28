@@ -64,6 +64,7 @@ from torchvision.tv_tensors import BoundingBoxes, Image as TVImage
 
 # 내부 모듈
 from src.utils import get_category_mapping
+# from utils import get_category_mapping
 
 ####################################################################################################
 # 1. 데이터 증강 및 전처리 Transform 정의 (학습/검증/테스트 분기)
