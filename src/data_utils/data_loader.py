@@ -366,29 +366,9 @@ class PillDataset(Dataset):
             print(f"Error loading annotation file: {ann_path}, {e}")
             return None
         
-####################################################################################################
-# 3-2. 데이터셋(YOLO)
-# class YOLODataset(Dataset):
-#     def __ini__(self, img_dir, txt_dir, mode='train', category_mapping=None, transform=None, bbox_format="XYWH", debug=False):
-#         self.img_dir = img_dir
-#         self.txt_dir = txt_dir
-#         self.transform = transform
-#         self.category_mapping = category_mapping
-#         self.bbox_format = bbox_format
-#         self.debug = debug
-
-#         self.txt_files = sorted([f for f in os.listdir(txt_dir) if f.endswith('.txt')])
-#         self.image_files = sorted([f for f in os.listdir(img_dir) if f.endswith(('.png'))])
-
-#         if self.mode in ['train', 'val']:
-#             assert txt_dir is not None, "Train/Val 모드에서는 txt_dir가 필요합니다."
-#             # 이름 비교
-#             # txt_basename = 
-#             pass
-        
 
 ####################################################################################################
-# 4. 데이터 로더 함수
+# 3. 데이터 로더 함수
 def get_loader(img_dir, ann_dir=None, batch_size=8, mode="train", val_ratio=0.2, bbox_format="XYXY", debug=False, seed=42):
     """
     데이터 로더를 반환하는 함수
@@ -575,7 +555,7 @@ def get_loader(img_dir, ann_dir=None, batch_size=8, mode="train", val_ratio=0.2,
         raise ValueError(f"Invalid mode: {mode}. Choose either 'train' or 'test'.")
 
 ####################################################################################################
-# 5. 메인 시작
+# 4. 메인 시작
 if __name__ == "__main__":
     # argparse 시작
     parser = argparse.ArgumentParser(description="PillDataset DataLoader Debug Runner")
