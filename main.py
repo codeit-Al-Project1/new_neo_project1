@@ -26,9 +26,12 @@ from src.yolo.test import predict_and_get_csv, enable_weights_only_false
 
 # ▶ [1] Faster R-CNN 학습
 python main.py --model frcnn --mode train --img_dir data/train_images --json_path data/train_annots_modify --backbone mobilenet_v3_large --batch_size 4 --epochs 5 --optimizer_name sgd --scheduler_name plateau --lr 0.001 --weight_decay 0.0005
+ex)
+1. python main.py --model frcnn --mode train --img_dir data/train_images --json_path data/train_annots_modify --backbone resnet50 --batch_size 4 --epochs 30 --optimizer_name sgd --scheduler_name plateau --lr 0.001 --weight_decay 0.0005 --iou_threshold 0.3 --conf_threshold 0.7
+2. python main.py --model frcnn --mode train --img_dir data/train_images --json_path data/train_annots_modify --backbone mobilenet_v3_large --batch_size 8 --epochs 10 --optimizer_name adamw --scheduler_name step --lr 0.0001 --weight_decay 0.0001 --iou_threshold 0.3 --conf_threshold 0.7
 
 # ▶ [2] Faster R-CNN 테스트 (시각화 및 CSV 저장)
-python main.py --model frcnn --mode test --img_dir data/test_images --model_path models/frcnn_session_4/best_model_lr=0.001_ep=1_bs=4_opt=sgd_scd=plateau_wd=0.0005.pth --threshold 0.5 --visualization --page_size 20 --page_lim 5
+python main.py --model frcnn --mode test --img_dir data/test_images --model_path models/frcnn_session_4/best_model_lr=0.001_ep=1_bs=4_opt=sgd_scd=plateau_wd=0.0005.pth --backbone resnet50 --threshold 0.5 --visualization --page_size 20 --page_lim 5
 
 # ▶ [3] YOLOv8 학습
 python main.py --model yolo --mode train --img_dir data/train_labels/train --yaml_path data/train_labels/data.yaml --model_variant n --batch_size 8 --epochs 100 --lr 0.001 --weight_decay 0.0005
@@ -45,6 +48,10 @@ python main.py --model yolo --mode test --model_path runs/detect/yolov8n_custom/
 --mode                : 실행 모드 선택 ['train', 'test', 'val'] (필수)
 --img_dir             : 입력 이미지가 있는 디렉토리 (train/test 공통)
 --model_path          : 사전 학습된 모델 경로 (.pth or .pt)
+--batch_size          : 학습 배치 크기
+--epochs              : 학습 반복 횟수
+--lr                  : 초기 학습률
+--weight_decay        : L2 정규화 (weight decay)
 --device              : 사용할 디바이스 ['cuda', 'cpu'], 기본값: 자동 선택
 --debug               : 디버그 출력 활성화
 --force_load          : YOLO 가중치 pickle 오류 대응 (weights_only=False로 로딩 강제)
@@ -53,24 +60,22 @@ python main.py --model yolo --mode test --model_path runs/detect/yolov8n_custom/
 🔸 FRCNN 전용 옵션
 --json_path           : 어노테이션 JSON 디렉토리 (default: data/train_annots_modify)
 --backbone            : 백본 모델 선택 ['resnet50', 'mobilenet_v3_large', 'resnext101']
---batch_size          : 학습 배치 크기
---epochs              : 학습 반복 횟수
 --optimizer_name      : 옵티마이저 종류 ['sgd', 'adam', 'adamw', 'rmsprop']
 --scheduler_name      : 러닝레이트 스케줄러 ['step', 'cosine', 'plateau', 'exponential']
---lr                  : 초기 학습률
---weight_decay        : L2 정규화 (weight decay)
 --test_batch_size     : 테스트용 배치 크기 (default: 4)
 --threshold           : confidence 임계값 (default: 0.5)
 --visualization       : 시각화 이미지 및 CSV 파일 저장 여부
 --page_size           : 시각화 시 한 페이지당 이미지 수 (default: 20)
 --page_lim            : 시각화 페이지 수 제한 (default: None, 전체 시각화)
+--iou_threshold       : IoU 임계값 (default: 0.5)
+--conf_threshold      : confidence 임계값 (default: 0.5)
 
 ------------------------------------------------------------------------------------
 🔸 YOLO 전용 옵션
 --yaml_path           : YOLO 학습 시 사용할 data.yaml 경로
 --model_variant       : YOLOv8 크기 선택 ['n', 's', 'm', 'l']
 --patience            : 조기 종료 patience (default: 100)
---optimizer           : YOLO 전용 옵티마이저 ['auto', 'SGD', 'Adam' 등]
+--optimizer           : YOLO 전용 옵티마이저 ['auto', 'SGD', 'Adam', 'AdamW', 'RMSProp' 등]
 --resume              : 학습 재시작 여부
 --val_model_path      : 검증 시 사용할 .pt 파일 경로
 --conf_threshold      : confidence threshold (default: 0.5)
@@ -96,13 +101,15 @@ def main():
     # ───────────── FRCNN 인자 ─────────────
     # 학습
     parser.add_argument("--json_path", type=str, default="data/train_annots_modify", help="어노테이션 JSON 파일 경로")
-    parser.add_argument("--backbone", type=str, choices=["resnet50", "mobilenet_v3_large", "resnext101"], help="백본 모델")
+    parser.add_argument("--backbone", type=str, choices=["resnet50", "mobilenet_v3_large", "resnext101", "efficientnet_b3"], help="백본 모델")
     parser.add_argument("--batch_size", type=int, default=16, help="학습 배치 사이즈")
     parser.add_argument("--epochs", type=int, default=5, help="에폭 수")
     parser.add_argument("--optimizer_name", type=str, choices=["sgd", "adam", "adamw", "rmsprop"], default="sgd", help="FRCNN 옵티마이저")
     parser.add_argument("--scheduler_name", type=str, choices=["step", "cosine", "plateau", "exponential"], default="plateau", help="FRCNN 스케줄러")
     parser.add_argument("--lr", type=float, default=0.001, help="학습률")
     parser.add_argument("--weight_decay", type=float, default=0.0005, help="L2 정규화")
+    # parser.add_argument("--iou_threshold", type=float, default=0.5, help="IoU 임계값")
+    # parser.add_argument("--conf_threshold", type=float, default=0.5, help="confidence 임계값")
 
     # 테스트
     parser.add_argument("--test_batch_size", type=int, default=4, help="테스트 배치 사이즈")
@@ -144,6 +151,8 @@ def main():
                 scheduler_name=args.scheduler_name,
                 lr=args.lr,
                 weight_decay=args.weight_decay,
+                iou_threshold=args.iou_threshold,
+                conf_threshold=args.conf_threshold,
                 device=args.device,
                 debug=args.debug,
             )
@@ -152,6 +161,7 @@ def main():
             print("[FRCNN] 테스트 시작")
             results = test_frcnn(
                 img_dir=args.img_dir,
+                backbone=args.backbone,
                 device=args.device,
                 model_path=args.model_path,
                 batch_size=args.test_batch_size,

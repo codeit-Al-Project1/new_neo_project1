@@ -25,7 +25,7 @@ from torch.utils.tensorboard import SummaryWriter
 import torchvision.utils as vutils
 
 # 내부 모듈
-from src.frcnn.utils import get_optimizer, get_scheduler, compute_iou, compute_precision_recall, compute_ap
+from src.frcnn.utils import get_optimizer, get_scheduler, compute_iou, compute_ap
 from src.data_utils.data_loader import get_loader
 from src.utils import get_category_mapping
 from src.model_utils.basic_frcnn import (
@@ -38,9 +38,19 @@ from src.model_utils.basic_frcnn import (
 writer = SummaryWriter("tensorboard_log_dir")
 
 
-def train(img_dir: str, json_dir: str, backbone: str = "resnet50", batch_size: int = 8, num_epochs: int = 5, optimizer_name: str = "sgd", 
-          scheduler_name: str = "plateau", lr: float = 0.001, weight_decay: float = 0.0005, 
-          device: str = "cpu", debug: bool = False):
+def train(img_dir: str,
+          json_dir: str,
+          backbone: str = "resnet50",
+          batch_size: int = 8,
+          num_epochs: int = 5,
+          optimizer_name: str = "sgd", 
+          scheduler_name: str = "plateau",
+          lr: float = 0.001,
+          weight_decay: float = 0.0005,
+          iou_threshold: float = 0.5,
+          conf_threshold: float = 0.5,
+          device: str = "cpu",
+          debug: bool = False):
     """
     Faster R-CNN 모델을 학습하는 함수
     
@@ -60,7 +70,7 @@ def train(img_dir: str, json_dir: str, backbone: str = "resnet50", batch_size: i
     # 입력값 검증
     assert isinstance(img_dir, str), "img_dir must be a string"
     assert isinstance(json_dir, str), "json_dir must be a string"
-    assert backbone in ["resnet50", "mobilenet_v3_large", "resnext101"], "backbone must be one of ['resnet50', 'mobilenet_v3_large', 'resnext101']"
+    assert backbone in ["resnet50", "mobilenet_v3_large", "resnext101", "efficientnet_b3"], "backbone must be one of ['resnet50', 'mobilenet_v3_large', 'resnext101', 'efficientnet_b3']"
     assert isinstance(batch_size, int) and batch_size > 0, "batch_size must be a positive integer"
     assert isinstance(num_epochs, int) and num_epochs > 0, "num_epochs must be a positive integer"
     assert isinstance(optimizer_name, str), "optimizer_name must be a string"
@@ -99,12 +109,23 @@ def train(img_dir: str, json_dir: str, backbone: str = "resnet50", batch_size: i
             images = [img.to(device) for img in images] 
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
+            loss_weights = {
+                "loss_classifier": 3.0,
+                "loss_box_reg": 1.0,
+                "loss_objectness": 1.0,
+                "loss_rpn_box_reg": 1.0
+            }
+            # 예: box_reg 줄이고 classifier 가중치 높이기
+            # loss_weights["loss_classifier"] = 1.5
+            # loss_weights["loss_box_reg"] = 0.5
+
+            # 가중 손실 총합 계산
             loss_dict = model(images, targets)
-            losses = sum(loss for loss in loss_dict.values())
+            losses = sum(loss_weights[k] * loss_dict[k] for k in loss_dict)
 
 
             losses.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0) # SGD를 사용하는 모델의 그래디언트 값이 너무 커지는 것을 방지하기 위해 그래디언트 클리핑
             optimizer.step()
 
             total_loss += losses.item()
@@ -126,40 +147,107 @@ def train(img_dir: str, json_dir: str, backbone: str = "resnet50", batch_size: i
         print(f"Epoch {epoch+1} Complete - Total Loss: {total_loss:.4f}, Avg Loss Per Component: {avg_loss_details}")
 
         # 검증
+        model.eval()
+        ap_list, precision_list, recall_list = [], [], []
         with torch.no_grad():
-            model.eval()
-            precision_list = []
-            recall_list = []
-            ap_list = []
 
             progress_bar = tqdm(val_loader, total=len(val_loader), desc='Validation', dynamic_ncols=True)
+
             for images, targets in progress_bar:
                 images = [img.to(device) for img in images]
                 outputs = model(images) # boxes, labels, scores
 
-                precision, recall, tp, fp, fn = compute_precision_recall(targets, outputs)
-                precision_list.append(precision)
-                recall_list.append(recall)
+                filtered_outputs = []
+                for output in outputs:
+                    keep = output["scores"] > conf_threshold  # 특정 임계값 이상인 것만 선택
+                    filtered_outputs.append({
+                        "boxes": output["boxes"][keep],
+                        "labels": output["labels"][keep],
+                        "scores": output["scores"][keep]
+                    })
 
-                ap = compute_ap(precision_list, recall_list)
-                ap_list.append(ap)
+                for i, output in enumerate(filtered_outputs):  
+                    pred_boxes = output['boxes'].cpu().numpy()  # 예측 박스
+                    pred_scores = output['scores'].cpu().numpy()  # 예측 신뢰도
+                    pred_labels = output['labels'].cpu().numpy()  # 예측 클래스
 
-                # 텐서보드에 기록
-                writer.add_scalar("ap", ap, epoch)
-                writer.add_scalar("Precision", precision, epoch)
-                writer.add_scalar("Recall", recall, epoch)
+                    gt_boxes = targets[i]['boxes'].cpu().numpy()  # 정답 박스
+                    gt_labels = targets[i]['labels'].cpu().numpy()  # 정답 클래스
+                    
+                    all_ap, all_precision, all_recall = [], [], []
 
-                progress_bar.set_postfix(Precision=precision, Recall=recall, AP=ap)
-            
-            mean_precision = np.mean(precision_list)
-            mean_recall = np.mean(recall_list)
-            map_score = np.mean(ap_list)
+                    # 클래스별 AP, Precision, Recall 계산
+                    for cls in np.unique(np.concatenate((pred_labels, gt_labels))):
+                        pred_mask = pred_labels == cls
+                        gt_mask = gt_labels == cls
 
-        print(f"Validation Complete - mAP: {map_score:.4f}, Mean Precision: {mean_precision:.4f}, Mean Recall: {mean_recall:.4f}")
+                        pred_cls_boxes = pred_boxes[pred_mask]
+                        pred_cls_scores = pred_scores[pred_mask]
+                        gt_cls_boxes = gt_boxes[gt_mask]
+
+                        # Confidence Score 순으로 정렬
+                        sorted_indices = np.argsort(-pred_cls_scores)
+                        pred_cls_boxes = pred_cls_boxes[sorted_indices]
+                        pred_cls_scores = pred_cls_scores[sorted_indices]
+
+                        tp = np.zeros(len(pred_cls_boxes))
+                        fp = np.zeros(len(pred_cls_boxes))
+                        matched = np.zeros(len(gt_cls_boxes))
+
+                        for pred_idx, pred_box in enumerate(pred_cls_boxes):
+                            best_iou = 0
+                            best_gt_idx = -1
+
+                            for gt_idx, gt_box in enumerate(gt_cls_boxes):
+                                iou = compute_iou(pred_box, gt_box)
+                                if iou > best_iou:
+                                    best_iou = iou
+                                    best_gt_idx = gt_idx
+
+                            if best_iou > iou_threshold and best_gt_idx != -1 and matched[best_gt_idx] == 0:
+                                tp[pred_idx] = 1  # TP (True Positive)
+                                matched[best_gt_idx] = 1
+                            else:
+                                fp[pred_idx] = 1  # FP (False Positive)
+
+                        # Precision, Recall 계산
+                        tp_cumsum = np.cumsum(tp)
+                        fp_cumsum = np.cumsum(fp)
+                        recall = tp_cumsum / len(gt_cls_boxes) if len(gt_cls_boxes) > 0 else np.zeros(len(tp_cumsum))
+                        precision = tp_cumsum / (tp_cumsum + fp_cumsum)
+
+                        # AP, Precision, Recall 저장
+                        ap = compute_ap(precision, recall)
+                        all_ap.append(ap)
+                        all_precision.append(precision[-1] if len(precision) > 0 else 0)
+                        all_recall.append(recall[-1] if len(recall) > 0 else 0)
+
+                    # 한 이미지에서 모든 클래스에 대한 평균값
+                    image_ap = np.mean(all_ap) if len(all_ap) > 0 else 0
+                    image_precision = np.mean(all_precision) if len(all_precision) > 0 else 0
+                    image_recall = np.mean(all_recall) if len(all_recall) > 0 else 0
+                    
+                    ap_list.append(image_ap)
+                    precision_list.append(image_precision)
+                    recall_list.append(image_recall)
+
+        mAP = np.mean(ap_list)  # 전체 이미지에서 AP 평균
+        mean_precision = np.mean(precision_list)
+        mean_recall = np.mean(recall_list)
+        
+
+        # 텐서보드에 기록
+        writer.add_scalar("mAP", mAP, epoch)
+        writer.add_scalar("Precision", mean_precision, epoch)
+        writer.add_scalar("Recall", mean_recall, epoch)
+
+        progress_bar.set_postfix(Precision=mean_precision, Recall=mean_recall, mAP=mAP)
+
+        print(f"Validation Complete - mAP: {mAP:.4f}, Mean Precision: {mean_precision:.4f}, Mean Recall: {mean_recall:.4f}")
 
         # 모델 저장
-        if map_score > best_map_score:
-            best_map_score = map_score
+        if mAP > best_map_score:
+            best_map_score = mAP
             save_model(model, session_folder, lr=lr, epoch=num_epochs, batch_size=batch_size, optimizer=optimizer_name, scheduler=scheduler_name, weight_decay=weight_decay)
             print(f"Model saved with mAP score: {best_map_score:.4f}")
 
@@ -169,7 +257,7 @@ def train(img_dir: str, json_dir: str, backbone: str = "resnet50", batch_size: i
         
         # 학습률 스케줄러 업데이트
         if scheduler_name == "plateau":
-            scheduler.step(map_score) # ReduceLROnPlateau의 경우 mode='max'로 설정 (성능이 좋아지면 학습률 감소)
+            scheduler.step(mAP) # ReduceLROnPlateau의 경우 mode='max'로 설정 (성능이 좋아지면 학습률 감소)
         else:
             scheduler.step()
 

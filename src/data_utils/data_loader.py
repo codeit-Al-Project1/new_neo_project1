@@ -64,6 +64,7 @@ from torchvision.tv_tensors import BoundingBoxes, Image as TVImage
 
 # 내부 모듈
 from src.utils import get_category_mapping
+# from utils import get_category_mapping
 
 ####################################################################################################
 # 1. 데이터 증강 및 전처리 Transform 정의 (학습/검증/테스트 분기)
@@ -82,15 +83,15 @@ def get_transforms(mode='train'):
 
     if mode == 'train':
         return T.Compose([
-            T.ToImage(),
-            T.RandomHorizontalFlip(p=0.5),
-            T.RandomVerticalFlip(p=0.5),
-            T.ColorJitter(brightness=(0.9, 1.1), contrast=(0.9, 1.1), saturation=(0.9, 1.1), hue=(-0.1, 0.1)),
-            T.RandomGrayscale(p=0.1),
-            T.RandomPerspective(distortion_scale=0.2, p=0.5),
-            T.GaussianBlur(kernel_size=(3, 3), sigma=(0.1, 2.0)),
-            T.RandomResizedCrop(size=(640, 640), scale=(0.8, 1.2)),
-            T.ToDtype(dtype=torch.float32, scale=True)
+            T.ToImage(),  # PIL -> Tensor 변환
+            T.RandomResizedCrop(size=(640, 640), scale=(0.8, 1.2)),  # 크롭 먼저 수행 (중요)
+            T.RandomHorizontalFlip(p=0.5),  # 좌우 뒤집기
+            T.RandomVerticalFlip(p=0.5),  # 상하 뒤집기
+            T.ColorJitter(brightness=(0.9, 1.1), contrast=(0.9, 1.1), saturation=(0.9, 1.1), hue=(-0.1, 0.1)),  # 색상 변환
+            T.RandomGrayscale(p=0.1),  # 흑백 변환
+            T.RandomPerspective(distortion_scale=0.2, p=0.5),  # 왜곡 변환
+            T.GaussianBlur(kernel_size=(3, 3), sigma=(0.1, 2.0)),  # 블러
+            T.ToDtype(dtype=torch.float32, scale=True)  # 최종 변환
         ])
     elif mode == "val" or mode == "test":
         return T.Compose([
@@ -365,29 +366,9 @@ class PillDataset(Dataset):
             print(f"Error loading annotation file: {ann_path}, {e}")
             return None
         
-####################################################################################################
-# 3-2. 데이터셋(YOLO)
-# class YOLODataset(Dataset):
-#     def __ini__(self, img_dir, txt_dir, mode='train', category_mapping=None, transform=None, bbox_format="XYWH", debug=False):
-#         self.img_dir = img_dir
-#         self.txt_dir = txt_dir
-#         self.transform = transform
-#         self.category_mapping = category_mapping
-#         self.bbox_format = bbox_format
-#         self.debug = debug
-
-#         self.txt_files = sorted([f for f in os.listdir(txt_dir) if f.endswith('.txt')])
-#         self.image_files = sorted([f for f in os.listdir(img_dir) if f.endswith(('.png'))])
-
-#         if self.mode in ['train', 'val']:
-#             assert txt_dir is not None, "Train/Val 모드에서는 txt_dir가 필요합니다."
-#             # 이름 비교
-#             # txt_basename = 
-#             pass
-        
 
 ####################################################################################################
-# 4. 데이터 로더 함수
+# 3. 데이터 로더 함수
 def get_loader(img_dir, ann_dir=None, batch_size=8, mode="train", val_ratio=0.2, bbox_format="XYXY", debug=False, seed=42):
     """
     데이터 로더를 반환하는 함수
@@ -574,7 +555,7 @@ def get_loader(img_dir, ann_dir=None, batch_size=8, mode="train", val_ratio=0.2,
         raise ValueError(f"Invalid mode: {mode}. Choose either 'train' or 'test'.")
 
 ####################################################################################################
-# 5. 메인 시작
+# 4. 메인 시작
 if __name__ == "__main__":
     # argparse 시작
     parser = argparse.ArgumentParser(description="PillDataset DataLoader Debug Runner")

@@ -4,6 +4,7 @@ import os
 # 서드파티 라이브러리
 import numpy as np
 import cv2
+from tqdm import tqdm
 import torch
 import torch.optim as optim
 import torch.optim.lr_scheduler as lr_scheduler
@@ -59,72 +60,120 @@ def get_scheduler(name, optimizer, step_size=5, gamma=0.1, T_max=50):
 
 # IoU 계산 함수
 def compute_iou(box1, box2):
-    """Intersection over Union (IoU) 계산"""
-    x1, y1, x2, y2 = box1
-    x1_pred, y1_pred, x2_pred, y2_pred = box2
+    """ 두 개의 바운딩 박스(box1, box2) 간 IoU(Intersection over Union) 계산 """
+    x1 = max(box1[0], box2[0])
+    y1 = max(box1[1], box2[1])
+    x2 = min(box1[2], box2[2])
+    y2 = min(box1[3], box2[3])
 
-    inter_x1 = max(x1, x1_pred)
-    inter_y1 = max(y1, y1_pred)
-    inter_x2 = min(x2, x2_pred)
-    inter_y2 = min(y2, y2_pred)
+    # 교집합 영역 계산
+    intersection = max(0, x2 - x1) * max(0, y2 - y1)
 
-    inter_area = max(0, inter_x2 - inter_x1) * max(0, inter_y2 - inter_y1)
-    box1_area = (x2 - x1) * (y2 - y1)
-    box2_area = (x2_pred - x1_pred) * (y2_pred - y1_pred)
+    # 각 박스의 면적
+    box1_area = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    box2_area = (box2[2] - box2[0]) * (box2[3] - box2[1])
 
-    union_area = box1_area + box2_area - inter_area
-    return inter_area / union_area if union_area > 0 else 0
+    # IoU = 교집합 영역 / 합집합 영역
+    union = box1_area + box2_area - intersection
+    return intersection / union if union > 0 else 0
 
-def compute_precision_recall(targets, predictions, iou_threshold=0.5):
-    """Precision과 Recall 계산"""
-    tp = 0
-    fp = 0
-    fn = 0
+def compute_ap(precision, recall):
+    """ Precision-Recall 곡선을 기반으로 AP(Average Precision) 계산 """
+    recall = np.concatenate(([0.], recall, [1.]))
+    precision = np.concatenate(([0.], precision, [0.]))
 
-    for target, prediction in zip(targets, predictions):
-        target_labels = target['labels']
-        target_boxes = target['boxes']
-        
-        pred_labels = prediction['labels']
-        pred_boxes = prediction['boxes']
-        pred_scores = prediction['scores']
+    # Precision 값이 단조 감소하도록 정리
+    for i in range(len(precision) - 1, 0, -1):
+        precision[i - 1] = max(precision[i - 1], precision[i])
 
-        matched_preds = set()
-        for t_label, t_box in zip(target_labels, target_boxes):
-            found_match = False
-            for idx, (p_label, p_box, p_score) in enumerate(zip(pred_labels, pred_boxes, pred_scores)):
-                if compute_iou(t_box, p_box) >= iou_threshold and t_label == p_label and idx not in matched_preds:
-                    tp += 1
-                    matched_preds.add(idx)
-                    found_match = True
-                    break
-            if not found_match:
-                fn += 1
-
-        fp += len(pred_labels) - len(matched_preds)  # FP는 매칭되지 않은 예측 박스 수
-    
-    precision = tp / (tp + fp) if (tp + fp) > 0 else 0
-    recall = tp / (tp + fn) if (tp + fn) > 0 else 0
-    
-    return precision, recall, tp, fp, fn
-
-def compute_ap(precisions, recalls):
-    """Average Precision 계산 (Interpolated)"""
-    precisions = np.array(precisions)
-    recalls = np.array(recalls)
-    
-    sorted_indices = np.argsort(recalls)
-    recalls = recalls[sorted_indices]
-    precisions = precisions[sorted_indices]
-
-    recalls = np.concatenate(([0], recalls, [1]))
-    precisions = np.concatenate(([0], precisions, [0]))
-
-    for i in range(len(precisions) - 2, -1, -1):
-        precisions[i] = max(precisions[i], precisions[i + 1])
-
-    ap = np.sum((recalls[1:] - recalls[:-1]) * precisions[1:])
+    # Recall 구간별 차이 계산 및 AP 적분
+    indices = np.where(recall[1:] != recall[:-1])[0]
+    ap = np.sum((recall[indices + 1] - recall[indices]) * precision[indices + 1])
     return ap
+
+
+def evaluate_faster_rcnn(model, val_loader, device, iou_threshold=0.1):
+    """ Faster R-CNN의 mAP, mean Precision, mean Recall 계산 """
+    model.eval()
+    ap_list, precision_list, recall_list = [], [], []
+
+    with torch.no_grad():
+        progress_bar = tqdm(val_loader, total=len(val_loader), desc='Validation', dynamic_ncols=True)
+        
+        for images, targets in progress_bar:
+            images = [img.to(device) for img in images]
+            outputs = model(images)
+
+            for i, output in enumerate(outputs):  
+                pred_boxes = output['boxes'].cpu().numpy()  # 예측 박스
+                pred_scores = output['scores'].cpu().numpy()  # 예측 신뢰도
+                pred_labels = output['labels'].cpu().numpy()  # 예측 클래스
+
+                gt_boxes = targets[i]['boxes'].cpu().numpy()  # 정답 박스
+                gt_labels = targets[i]['labels'].cpu().numpy()  # 정답 클래스
+                
+                all_ap, all_precision, all_recall = [], [], []
+                
+                # 클래스별 AP, Precision, Recall 계산
+                for cls in np.unique(np.concatenate((pred_labels, gt_labels))):
+                    pred_mask = pred_labels == cls
+                    gt_mask = gt_labels == cls
+
+                    pred_cls_boxes = pred_boxes[pred_mask]
+                    pred_cls_scores = pred_scores[pred_mask]
+                    gt_cls_boxes = gt_boxes[gt_mask]
+
+                    # Confidence Score 순으로 정렬
+                    sorted_indices = np.argsort(-pred_cls_scores)
+                    pred_cls_boxes = pred_cls_boxes[sorted_indices]
+                    pred_cls_scores = pred_cls_scores[sorted_indices]
+
+                    tp = np.zeros(len(pred_cls_boxes))
+                    fp = np.zeros(len(pred_cls_boxes))
+                    matched = np.zeros(len(gt_cls_boxes))
+
+                    for pred_idx, pred_box in enumerate(pred_cls_boxes):
+                        best_iou = 0
+                        best_gt_idx = -1
+
+                        for gt_idx, gt_box in enumerate(gt_cls_boxes):
+                            iou = compute_iou(pred_box, gt_box)
+                            if iou > best_iou:
+                                best_iou = iou
+                                best_gt_idx = gt_idx
+
+                        if best_iou > iou_threshold and best_gt_idx != -1 and matched[best_gt_idx] == 0:
+                            tp[pred_idx] = 1  # TP (True Positive)
+                            matched[best_gt_idx] = 1
+                        else:
+                            fp[pred_idx] = 1  # FP (False Positive)
+
+                    # Precision, Recall 계산
+                    tp_cumsum = np.cumsum(tp)
+                    fp_cumsum = np.cumsum(fp)
+                    recall = tp_cumsum / len(gt_cls_boxes) if len(gt_cls_boxes) > 0 else np.zeros(len(tp_cumsum))
+                    precision = tp_cumsum / (tp_cumsum + fp_cumsum)
+
+                    # AP, Precision, Recall 저장
+                    ap = compute_ap(precision, recall)
+                    all_ap.append(ap)
+                    all_precision.append(precision[-1] if len(precision) > 0 else 0)
+                    all_recall.append(recall[-1] if len(recall) > 0 else 0)
+
+                # 한 이미지에서 모든 클래스에 대한 평균값
+                image_ap = np.mean(all_ap) if len(all_ap) > 0 else 0
+                image_precision = np.mean(all_precision) if len(all_precision) > 0 else 0
+                image_recall = np.mean(all_recall) if len(all_recall) > 0 else 0
+                
+                ap_list.append(image_ap)
+                precision_list.append(image_precision)
+                recall_list.append(image_recall)
+
+    mAP = np.mean(ap_list)  # 전체 이미지에서 AP 평균
+    mean_precision = np.mean(precision_list)
+    mean_recall = np.mean(recall_list)
+    
+    return mAP, mean_precision, mean_recall
 
 
 # 시각화 함수
