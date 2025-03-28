@@ -83,15 +83,15 @@ def get_transforms(mode='train'):
 
     if mode == 'train':
         return T.Compose([
-            T.ToImage(),
-            T.RandomHorizontalFlip(p=0.5),
-            T.RandomVerticalFlip(p=0.5),
-            T.ColorJitter(brightness=(0.9, 1.1), contrast=(0.9, 1.1), saturation=(0.9, 1.1), hue=(-0.1, 0.1)),
-            T.RandomGrayscale(p=0.1),
-            T.RandomPerspective(distortion_scale=0.2, p=0.5),
-            T.GaussianBlur(kernel_size=(3, 3), sigma=(0.1, 2.0)),
-            T.RandomResizedCrop(size=(640, 640), scale=(0.8, 1.2)),
-            T.ToDtype(dtype=torch.float32, scale=True)
+            T.ToImage(),  # PIL -> Tensor 변환
+            T.RandomResizedCrop(size=(640, 640), scale=(0.8, 1.2)),  # 크롭 먼저 수행 (중요)
+            T.RandomHorizontalFlip(p=0.5),  # 좌우 뒤집기
+            T.RandomVerticalFlip(p=0.5),  # 상하 뒤집기
+            T.ColorJitter(brightness=(0.9, 1.1), contrast=(0.9, 1.1), saturation=(0.9, 1.1), hue=(-0.1, 0.1)),  # 색상 변환
+            T.RandomGrayscale(p=0.1),  # 흑백 변환
+            T.RandomPerspective(distortion_scale=0.2, p=0.5),  # 왜곡 변환
+            T.GaussianBlur(kernel_size=(3, 3), sigma=(0.1, 2.0)),  # 블러
+            T.ToDtype(dtype=torch.float32, scale=True)  # 최종 변환
         ])
     elif mode == "val" or mode == "test":
         return T.Compose([
