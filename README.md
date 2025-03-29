@@ -1,36 +1,33 @@
- # Data Download 실행
-<<<<<<< HEAD
+# Develop Branch
 
-<<<<<<< Updated upstream
-=======
- 
- 실행방법:
- 
->>>>>>> 148704ccfa1e11f25374d97d84c1a20345218386
- python src/data_utils/data_download.py --download True --extract True
+ 진행상황을 업데이트 한다.
 
- Download path는 default 값인 './data'로 설정 된다. 필요하다면 아래의 방식으로 재설정 하는 방식이 가능하되, 가능하면 defalut값으로 진행하는 것을 권장한다.
+# Data_download 수정 사항
 
- python src/data_utils/data_download.py --download_path <다운로드 경로> --download True --extract True
+ 기본 실행 방법(다운로드 및 annotation wrapping)
+ - python src/data_utils/data_download.py --download --extract
 
- ***Note: 다운로드 과정에 있어서 kaggle의 API를 적용했으므로, kaggle인증을 미리 진행해야 다운로드를 진행할 수 있다.***
+ 다운로드 제외실행(annotation wrapping 및 json modify)
+ - python src/data_utils/data_download.py
 
- ***Note: 다운로드 과정이 필요없는 경우, train_annotations폴더 내의 annotations의 최신화를 위해 download False, extract False를 두어 실행한다.***
+ data는 이미 최신화 된 상태에서 json_modify 만을 실행하려는 경우.
+ - python src/data_utils/data_download.py --json_modify
 
-  python src/data_utils/data_download.py --download False --extract False
+# Frcnn Test 실행 방법
 
-# json(Annotation)을 모델에 학습시키기 위해 수정하는 작업
+ python main.py --mode test --img_dir "data/test_images"  --> 기본 실행
 
- 실행 방법:
+ python main.py --mode test --img_dir "data/test_images" --debug --visualization --> 디버그 + 시각화 추가
 
-  python src/data_utils/data_loader.py
+ python main.py --mode test --img_dir "data/test_images" --test_batch_size 4 --threshold 0.5 --debug --visualization --> 배치 조정, 임계값 조정
 
-  ***NOTE: Defalut 값으로 './data/train_annotations'를 추적하며 './data/train_annots_modify' 폴더를 생성한다.***
+ python main.py --mode test --img_dir "data/test_images" --test_batch_size 4 --threshold 0.5 --debug --visualization --page_size 20 --page_lim None(int) --> 시각화 조정
 
-  ***NOTE: argument parse 값으로 output dir와 json_folder설정이 가능하나, 추후 다른 모듈과의 연동을 위해 기본값으로 진행하는것을 권장한다.***
-<<<<<<< HEAD
-=======
-진행상황을 업데이트 한다.
->>>>>>> Stashed changes
-=======
->>>>>>> 148704ccfa1e11f25374d97d84c1a20345218386
+ - model_path: weight & bias 정보가 담긴 .pth 파일이 존재할 경우 경로 지정.
+ - test_batch_size: (default) 4
+ - threshold: (default) 0.5
+ - debug: 입력시 True, 아니면 False
+ - visualization: 입력시 True, 아니면 False
+ - page_size: 저장될 이미지 하나에 포함될 이미지의 개수 (default) 20
+ - page_lim:  샘플링 여부 (default) None --> int 입력값 수정으로 샘플링의 양을 설정
+
