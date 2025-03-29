@@ -13,7 +13,7 @@ __pycache__/
 # 학습된 모델 파일 무시
 *.pth
 # 텐서보드 로그 파일 무시
-tensorboard_log_dir/*
+tensorboard_log_dir/
 
 *.pt
 src/temp.py
@@ -28,11 +28,22 @@ data/train_annotations/*
 data/train_annots_modify/*
 data/train_labels/*
 
+notebooks/*
+
+*.yaml
+
+*.pth
+*.pt
+
 # 혹시 남아있을 압축 파일 무시
 data/ai01-level1-project.zip
 
 # 런 폴더 전체 무시 (개별 예외만 따로 위에서 설정)
 runs/*
+
+# 모델 폴더 무시
+models/*
+notebooks/*
 
 # 가상환경 폴더 무시
 pj1/

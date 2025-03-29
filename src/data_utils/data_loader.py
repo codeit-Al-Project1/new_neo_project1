@@ -564,7 +564,6 @@ if __name__ == "__main__":
     parser.add_argument('--debug', action='store_true', help="디버깅 모드 여부")
     parser.add_argument('--val_ratio', type=float, default=0.2, help="검증 데이터셋 비율 (0 ~ 1)")
     parser.add_argument('--seed', type=int, default=42, help="랜덤 시드 (재현성 보장)")
-
     args = parser.parse_args()
 
     TRAIN_ROOT = "data/train_images"
