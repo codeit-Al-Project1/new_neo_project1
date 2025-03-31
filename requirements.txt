@@ -93,5 +93,8 @@ ultralytics==8.0.208
 websocket-client==1.8.0
 widgetsnbextension==4.0.13
 zipp==3.21.0
-# scikit-learn 추가해야함
-# tensorboard 추가해야함
+ultralytics==8.3.96
+ultralytics-thop==2.0.14
+tensorboard==2.19.0
+tensorboard-data-server==0.7.2
+kaggle==1.7.4.2

@@ -8,7 +8,11 @@
     - Annotation 최신화
     - Annotation 형태 변환
 
-    ***Note: 캐글 API를 이용한 다운로드 입니다. kaggle.json 파일을 케글에서 내려받아 .kaggle/폴더에 위치시켜야만 다운로드가 진행됩니다.***
+    ### 데이터 파이프라인 실행:
+
+        python -m src.data_utils.data_pipeline --path ./data --output_dir ./data/train_annots_modify --json_folder ./data/train_annotations --download --extract --image_dir ./data/train_images --label_output_dir ./data/train_labels --test_size 0.2 --debug --step all
+
+    ***Note: kaggle API를 이용한 다운로드 입니다. kaggle.json 파일을 케글에서 내려받아 .kaggle/폴더에 위치시켜야만 다운로드가 진행됩니다.***
 
  2. Faster R-CNN 실험:
     - 실행 코드:
@@ -19,7 +23,15 @@
 
     ### 결과 확인:
 
-        python main.py --model frcnn --mode test --img_dir data/test_images --model_path models/frcnn_session_1/best_model_lr=0.0001_ep=1_bs=8_opt=adamw_scd=plateau_wd=0.0005.pth --backbone mobilenet_v3_large --threshold 0.5 --visualization --page_size 12 --page_lim 5
+    ***NOTE: --model_path의 경로는 학습 파라미터를 어떻게 조정하느냐에 따라 파일명이 바뀔수 있습니다. 학습 후 validation 결과 아래에 출력되는 model path를 확인 후 --model_path 뒤에 붙여주시면 문제 없이 진행됩니다.***
+    
+    - 예시:
+        Validation: 100%|███████████████████████████████████████████████████████████████████████████████████| 37/37 [00:20<00:00,  1.80it/s]
+        Validation Complete - mAP: 0.2478, Mean Precision: 0.2412, Mean Recall: 0.2488
+        Model saved to ./models/frcnn_session_1/best_model_lr=0.0001_ep=25_bs=8_opt=adamw_scd=plateau_wd=0.0005.pth
+    
+    - 실행코드:
+        python main.py --model frcnn --mode test --img_dir data/test_images --model_path ./models/frcnn_session_1/best_model_lr=0.0001_ep=25_bs=8_opt=adamw_scd=plateau_wd=0.0005.pth --backbone mobilenet_v3_large --threshold 0.5 --visualization --page_size 12 --page_lim 5
 
     Arguments Description:
 
