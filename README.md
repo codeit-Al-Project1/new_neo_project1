@@ -28,9 +28,7 @@
     - 예시:
 
         Validation: 100%|██████████████████████████████| 37/37 [00:20<00:00,  1.80it/s]
-
         Validation Complete - mAP: 0.2478, Mean Precision: 0.2412, Mean Recall: 0.2488
-        
         Model saved to ./models/frcnn_session_1/best_model_lr=0.0001_ep=25_bs=8_opt=adamw_scd=plateau_wd=0.0005.pth
     
     - 실행코드:
