@@ -110,10 +110,10 @@ def train(img_dir: str,
             targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
             loss_weights = {
-                "loss_classifier": 3.0,
+                "loss_classifier": 3.2,
                 "loss_box_reg": 1.0,
-                "loss_objectness": 1.0,
-                "loss_rpn_box_reg": 1.0
+                "loss_objectness": 0.5,
+                "loss_rpn_box_reg": 0.8
             }
             # 예: box_reg 줄이고 classifier 가중치 높이기
             # loss_weights["loss_classifier"] = 1.5

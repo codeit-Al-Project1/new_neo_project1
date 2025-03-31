@@ -114,7 +114,7 @@ def main():
     parser.add_argument("--test_batch_size", type=int, default=4, help="테스트 배치 사이즈")
     parser.add_argument("--threshold", type=float, default=0.5, help="예측 임계값")
     parser.add_argument("--visualization", action="store_true", help="시각화 여부")
-    parser.add_argument("--page_size", type=int, default=20, help="시각화 한 페이지당 이미지 수")
+    parser.add_argument("--page_size", type=int, default=12, help="시각화 한 페이지당 이미지 수")
     parser.add_argument("--page_lim", type=int, default=None, help="시각화 페이지 수 제한")
 
     # ───────────── YOLO 인자 ─────────────

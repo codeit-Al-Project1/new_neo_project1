@@ -12,7 +12,7 @@ from torchvision.models.detection.faster_rcnn import FasterRCNN_ResNet50_FPN_Wei
 # from torchvision.models.detection.faster_rcnn import EfficientNetB3_FPN_Weights
 
 class FocalLoss(nn.Module):
-    def __init__(self, alpha=0.75, gamma=4.0):
+    def __init__(self, alpha=0.5, gamma=3.0):
         super(FocalLoss, self).__init__()
         self.alpha = alpha
         self.gamma = gamma
