@@ -1,36 +1,45 @@
-# 모든 png 파일 무시
+# 모든 PNG 파일 무시
 *.png
 
-# 모든 zip 파일 무시
+# 모든 ZIP 파일 무시
 *.zip
+
+# 모든 TEXT 파일 무시
+*.txt
+
+# 파이썬 캐시 파일 무시
+__pycache__/
+
+# 학습된 모델 파일 무시
+*.pth
+# 텐서보드 로그 파일 무시
+tensorboard_log_dir/*
+
 *.pt
-# 파이캐시 무시
-__pycache__
+src/temp.py
+*.csv
 
+# 데이터 폴더 전체 무시 (개별 예외만 따로 위에서 설정)
+data/*
 
-# 모듈화 실행시 해당 디랙토리 파일들을 덮어쓰기 떄문에 개개인의 모듈 실행확인을 위해
-# 해당 디랙토리를 제외시킴
-data/train_annots_modify/*
-
-# 이미지 디랙토리, push/ pull 방지 -- 업데이트를 희망한다면 .gitignore에서 제외 시키는 것을 고려
 data/test_images/*
 data/train_images/*
 data/train_annotations/*
+data/train_annots_modify/*
+data/train_labels/*
 
-# 혹시나 압축 파일이 제거되지 않았다면 pull / push에서 제외
+# 혹시 남아있을 압축 파일 무시
 data/ai01-level1-project.zip
 
-tensorboard_log_dir
-temp.py
-runs
-models
+# 런 폴더 전체 무시 (개별 예외만 따로 위에서 설정)
+runs/*
 
-#가상환경
+# 가상환경 폴더 무시
 pj1/
 
-# 데이터 폴더 무시(데이터 다운로드 모듈 제외)
-data/*
-!data
-!data/data_download.py
-!data/json_modify.py
-
+# 욜로 실행시 나오는 웨이트 .pt 무시
+yolo11n.pt
+yolov8n.pt
+yolov8s.pt
+yolov8m.pt
+yolov8l.pt
