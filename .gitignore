@@ -3,7 +3,7 @@
 
 # 모든 zip 파일 무시
 *.zip
-
+*.pt
 # 파이캐시 무시
 __pycache__
 
@@ -20,7 +20,10 @@ data/train_annotations/*
 # 혹시나 압축 파일이 제거되지 않았다면 pull / push에서 제외
 data/ai01-level1-project.zip
 
-
+tensorboard_log_dir
+temp.py
+runs
+models
 
 #가상환경
 pj1/
@@ -30,3 +33,4 @@ data/*
 !data
 !data/data_download.py
 !data/json_modify.py
+
