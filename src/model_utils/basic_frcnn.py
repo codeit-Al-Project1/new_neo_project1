@@ -36,7 +36,7 @@ def get_fast_rcnn_model(num_classes, backbone="resnet50", focal=True, device: st
     elif backbone == "mobilenet_v3_large":
         backbone_model = torchvision.models.mobilenet_v3_large(weights="IMAGENET1K_V1").features
         backbone_model.out_channels = 960  # MobileNetV3의 출력 채널
-        anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256, 512),), aspect_ratios=((0.5, 1.0, 2.0),) * 5)
+        anchor_generator = AnchorGenerator(sizes=((32, 64, 128, 256),), aspect_ratios=((0.5, 1.0, 2.0),) * 5)
         model = FasterRCNN(backbone_model, num_classes=num_classes, rpn_anchor_generator=anchor_generator)
         in_features = model.roi_heads.box_predictor.cls_score.in_features
         if focal:

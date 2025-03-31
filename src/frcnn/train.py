@@ -35,7 +35,7 @@ from src.model_utils.basic_frcnn import (
 )
 
 # 텐서보드 객체 생성
-writer = SummaryWriter("tensorboard_log_dir")
+writer = SummaryWriter("tensorboard_log_dir/backbone_test_log")
 
 
 def train(img_dir: str,
@@ -95,7 +95,8 @@ def train(img_dir: str,
 
     # 최고 성능 모델 저장을 위한 변수
     best_map_score = 0
-    
+
+
     # 학습 루프
     for epoch in range(num_epochs):
         model.train()
@@ -123,9 +124,9 @@ def train(img_dir: str,
             loss_dict = model(images, targets)
             losses = sum(loss_weights[k] * loss_dict[k] for k in loss_dict)
 
-
+            optimizer.zero_grad()
             losses.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0) # SGD를 사용하는 모델의 그래디언트 값이 너무 커지는 것을 방지하기 위해 그래디언트 클리핑
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0) # SGD를 사용하는 모델의 그래디언트 값이 너무 커지는 것을 방지하기 위해 그래디언트 클리핑
             optimizer.step()
 
             total_loss += losses.item()

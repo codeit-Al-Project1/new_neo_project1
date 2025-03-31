@@ -58,7 +58,7 @@ python main.py --model yolo --mode test --model_path runs/detect/yolov8n_custom/
 ------------------------------------------------------------------------------------
 🔸 FRCNN 전용 옵션
 --json_path           : 어노테이션 JSON 디렉토리 (default: data/train_annots_modify)
---backbone            : 백본 모델 선택 ['resnet50', 'mobilenet_v3_large', 'resnext101']
+--backbone            : 백본 모델 선택 ['resnet50', 'mobilenet_v3_large', 'resnext101', 'efficientnet_b3']
 --optimizer_name      : 옵티마이저 종류 ['sgd', 'adam', 'adamw', 'rmsprop']
 --scheduler_name      : 러닝레이트 스케줄러 ['step', 'cosine', 'plateau', 'exponential']
 --test_batch_size     : 테스트용 배치 크기 (default: 4)
