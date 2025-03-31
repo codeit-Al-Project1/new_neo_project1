@@ -28,7 +28,7 @@
     - 예시:
 
         Validation: 100%|██████████████████████████████| 37/37 [00:20<00:00,  1.80it/s]
-        
+
         Validation Complete - mAP: 0.2478, Mean Precision: 0.2412, Mean Recall: 0.2488
 
         Model saved to ./models/frcnn_session_1/best_model_lr=0.0001_ep=25_bs=8_opt=adamw_scd=plateau_wd=0.0005.pth
@@ -66,7 +66,7 @@
         --page_size           : 시각화 시 한 페이지당 이미지 수 (default: 12) --> 가독성 상향을 위한 조정 20 -> 12
         --page_lim            : 시각화 페이지 수 제한 (default: None, 전체 시각화)
         --iou_threshold       : IoU 임계값 (default: 0.3) --> 배경인식을 위한 조정 0.5 -> 0.3   
-        --conf_threshold      : confidence 임계값 (default: 0.5)  -->
+        --conf_threshold      : confidence 임계값 (default: 0.5)  --> 0.3
 
  4. YOLO 모델 실험:
     - 실행 코드:
