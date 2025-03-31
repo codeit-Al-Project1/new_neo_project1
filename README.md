@@ -6,7 +6,7 @@
  1. 데이터 다운로드 및 전처리
     - 데이터 다운로드
     - Annotation 최신화
-    - Annotation 형태 변환
+    - Annotation 형태 변환\n
     ***Note: 캐글 API를 이용한 다운로드 입니다. kaggle.json 파일을 케글에서 내려받아 .kaggle/폴더에 위치시켜야만 다운로드가 진행됩니다.***
 
  2. Faster R-CNN 실험:
