@@ -59,11 +59,12 @@
         --test_batch_size     : 테스트용 배치 크기 (default: 4)    
         --threshold           : confidence 임계값 (default: 0.5)    
         --visualization       : 시각화 이미지 및 CSV 파일 저장 여부   
-        --page_size           : 시각화 시 한 페이지당 이미지 수 (default: 12) --> 가독성 상향을 위한 조정 20 -> 12        --page_lim            : 시각화 페이지 수 제한 (default: None, 전체 시각화)
+        --page_size           : 시각화 시 한 페이지당 이미지 수 (default: 12) --> 가독성 상향을 위한 조정 20 -> 12
+        --page_lim            : 시각화 페이지 수 제한 (default: None, 전체 시각화)
         --iou_threshold       : IoU 임계값 (default: 0.3) --> 배경인식을 위한 조정 0.5 -> 0.3   
         --conf_threshold      : confidence 임계값 (default: 0.5)  -->
 
- 3. YOLO 모델 실험:
+ 4. YOLO 모델 실험:
     - 실행 코드:
     ### ▶ YOLOv8 학습
         python main.py --model yolo --mode train --img_dir data/train_labels/train --yaml_path data/train_labels/data.yaml --model_variant n --batch_size 8 --epochs 100 --lr 0.001 --weight_decay 0.0005
