@@ -13,13 +13,13 @@
  2. Faster R-CNN 실험:
     - 실행 코드:
 
-    학습:
+    ### 학습:
 
-    python main.py --model frcnn --mode train --img_dir data/train_images --json_path data/train_annots_modify --backbone mobilenet_v3_large --batch_size 8 --epochs 25 --optimizer_name adamw --scheduler_name plateau --lr 1e-4 --weight_decay 5e-4 --iou_threshold 0.3 --conf_threshold 0.7
+        python main.py --model frcnn --mode train --img_dir data/train_images --json_path data/train_annots_modify --backbone mobilenet_v3_large --batch_size 8 --epochs 25 --optimizer_name adamw --scheduler_name plateau --lr 1e-4 --weight_decay 5e-4 --iou_threshold 0.3 --conf_threshold 0.7
 
-    결과 확인:
+    ### 결과 확인:
 
-    python main.py --model frcnn --mode test --img_dir data/test_images --model_path models/frcnn_session_1/best_model_lr=0.0001_ep=1_bs=8_opt=adamw_scd=plateau_wd=0.0005.pth --backbone mobilenet_v3_large --threshold 0.5 --visualization --page_size 12 --page_lim 5
+        python main.py --model frcnn --mode test --img_dir data/test_images --model_path models/frcnn_session_1/best_model_lr=0.0001_ep=1_bs=8_opt=adamw_scd=plateau_wd=0.0005.pth --backbone mobilenet_v3_large --threshold 0.5 --visualization --page_size 12 --page_lim 5
 
     Arguments Description:
 
@@ -53,14 +53,14 @@
 
  3. YOLO 모델 실험:
     - 실행 코드:
-    # ▶ YOLOv8 학습
-    python main.py --model yolo --mode train --img_dir data/train_labels/train --yaml_path data/train_labels/data.yaml --model_variant n --batch_size 8 --epochs 100 --lr 0.001 --weight_decay 0.0005
+    ### ▶ YOLOv8 학습
+        python main.py --model yolo --mode train --img_dir data/train_labels/train --yaml_path data/train_labels/data.yaml --model_variant n --batch_size 8 --epochs 100 --lr 0.001 --weight_decay 0.0005
 
-    # ▶ YOLOv8 검증 (validation)
-    python main.py --model yolo --mode val --val_model_path runs/detect/yolov8n_custom/weights/best.pt
+    ### ▶ YOLOv8 검증 (validation)
+        python main.py --model yolo --mode val --val_model_path runs/detect/yolov8n_custom/weights/best.pt
 
-    # ▶ YOLOv8 테스트 (결과 이미지 저장 및 CSV 저장)
-    python main.py --model yolo --mode test --model_path runs/detect/yolov8n_custom/weights/best.pt --img_dir data/test_images --save_images --save_csv_path submission_yolo.csv --conf_threshold 0.5 --iou_threshold 0.7
+    ### ▶ YOLOv8 테스트 (결과 이미지 저장 및 CSV 저장)
+        python main.py --model yolo --mode test --model_path runs/detect/yolov8n_custom/weights/best.pt --img_dir data/test_images --save_images --save_csv_path submission_yolo.csv --conf_threshold 0.5 --iou_threshold 0.7
 
     🔸 YOLO 전용 옵션
 
